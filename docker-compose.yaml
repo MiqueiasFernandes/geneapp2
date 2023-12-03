@@ -10,6 +10,8 @@ services:
     hostname: geneappserver
     volumes:
       - ./data:/etc/data
+    env_file:
+      - ./profile_PRD.env
 
   flask:
     build:
@@ -17,11 +19,15 @@ services:
     hostname: geneappservice
     volumes:
       - ./data:/etc/data
+    env_file:
+      - ./profile_PRD.env
 
   nuxt:
     build:
       context: frontend
     hostname: geneappexplorer
+    env_file:
+      - ./profile_PRD.env
 
   nginx:
     build:

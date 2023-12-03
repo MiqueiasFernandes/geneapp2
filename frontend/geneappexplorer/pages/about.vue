@@ -1,0 +1,3 @@
+<template>
+    paina about
+</template>

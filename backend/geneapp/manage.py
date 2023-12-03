@@ -15,6 +15,17 @@ def main():
             "available on your PYTHONPATH environment variable? Did you "
             "forget to activate a virtual environment?"
         ) from exc
+    
+    print(f"""
+starting GeneAPPSERVER PROFILE : {os.environ.get('DJANGO_PROF', 'DEV')}....
+      ██████╗ ███████╗███╗   ██╗███████╗ █████╗ ██████╗ ██████╗ 
+     ██╔════╝ ██╔════╝████╗  ██║██╔════╝██╔══██╗██╔══██╗██╔══██╗
+     ██║  ███╗█████╗  ██╔██╗ ██║█████╗  ███████║██████╔╝██████╔╝
+     ██║   ██║██╔══╝  ██║╚██╗██║██╔══╝  ██╔══██║██╔═══╝ ██╔═══╝ 
+     ╚██████╔╝███████╗██║ ╚████║███████╗██║  ██║██║     ██║     
+      ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝     
+                   version 2.0 2023 mikeias.net
+    """)
     execute_from_command_line(sys.argv)
 
 

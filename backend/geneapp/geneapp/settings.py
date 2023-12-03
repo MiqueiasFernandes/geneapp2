@@ -10,7 +10,13 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+
 from pathlib import Path
+import os
+
+PROF_PRD = os.environ.get('DJANGO_PROF', 'DEV') == 'PRD'
+PROF_DEV = not PROF_PRD
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +26,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-wq_0+15vb19*k81nw7cl618onr134z-r@2jc0ix+gks9b!bd-m'
+SECRET_KEY = os.environ.get('DJANGO_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = PROF_DEV
 
-ALLOWED_HOSTS = ['geneappserver']
+ALLOWED_HOSTS = [os.environ.get('DJANGO_HOST')]
 
 
 # Application definition
@@ -50,6 +56,18 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+if PROF_DEV:
+    ALLOWED_HOSTS.append('localhost')
+    INSTALLED_APPS.append('corsheaders')
+    MIDDLEWARE.extend([
+        'corsheaders.middleware.CorsMiddleware', 
+        'django.middleware.common.CommonMiddleware'
+        ])
+    CORS_ALLOWED_ORIGINS = [
+        'http://localhost:3000',
+    ]
+
 
 ROOT_URLCONF = 'geneapp.urls'
 

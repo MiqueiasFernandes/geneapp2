@@ -11,7 +11,7 @@ COPY geneappscript.py .
 RUN mkdir -p /etc/data/results && ls > /etc/data/results/files.txt
 ENV FLASK_APP geneappscript.py
 ENV FLASK_ENV development
-ENV FLASK_RUN_PORT 7000
+ENV FLASK_RUN_PORT 9000
 ENV FLASK_RUN_HOST 0.0.0.0
 
 CMD ["flask", "run"]

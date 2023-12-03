@@ -1,0 +1,3 @@
+<template>
+    pagina geneappservice
+</template>
