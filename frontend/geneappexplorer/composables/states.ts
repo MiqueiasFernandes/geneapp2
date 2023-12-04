@@ -1,4 +1,5 @@
-import type { IProjeto } from "./models/projeto";
+import { Projeto, type IProjeto } from "./models/projeto";
 
 
-export const useProjeto = () => useState<IProjeto>(() => ({} as IProjeto))
+
+export const useProjeto = () => useState<IProjeto>(Projeto.model)
