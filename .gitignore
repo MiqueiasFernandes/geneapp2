@@ -2,3 +2,5 @@ service/flask_env/
 frontend/geneappexplorer/node_modules/
 backend/django_env/
 .DS_Store
+data/
+backend/geneapp/db.sqlite3

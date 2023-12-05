@@ -3,6 +3,7 @@
 import type { FormError, FormSubmitEvent } from '#ui/types'
 import { Projeto, type IProjeto } from '../composables/models/projeto';
 import type { ISample } from '../composables/models/sample';
+const runtimeConfig = useRuntimeConfig()
 
 const toast = useToast()
 const LBS = ['SHORT_PAIRED', 'SHORT_SINGLE', 'LONG_SINGLE']
@@ -254,13 +255,13 @@ async function onSubmit(event: FormSubmitEvent<any>) {
                             <div class="text-center w-1/3">
                                 <div class=" border-solid border-2 border-indigo-100 rounded-md p-4">
                                     <UFormGroup label="CPU" :hint="`${projeto.threads}`">
-                                        <URange :min="1" :max="100" v-model="projeto.threads"  :disabled="status > 0"/>
+                                        <URange :min="1" :max="runtimeConfig.public.CPU" v-model="projeto.threads"  :disabled="status > 0"/>
                                     </UFormGroup>
                                     <UFormGroup label="RAM" :hint="`${projeto.ram}`" class="mt-6">
-                                        <URange :min="1" :max="100" v-model="projeto.ram"  :disabled="status > 0"/>
+                                        <URange :min="1" :max="runtimeConfig.public.RAM" v-model="projeto.ram"  :disabled="status > 0"/>
                                     </UFormGroup>
                                     <UFormGroup label="Disk" :hint="`${projeto.disk}`" class="mt-6">
-                                        <URange :min="1" :max="100" v-model="projeto.disk"  :disabled="status > 0"/>
+                                        <URange :min="1" :max="runtimeConfig.public.DISK" v-model="projeto.disk"  :disabled="status > 0"/>
                                     </UFormGroup>
                                 </div>
                             </div>

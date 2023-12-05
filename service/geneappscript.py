@@ -5,7 +5,9 @@ import shutil
 from datetime import datetime
 import subprocess
 
-LOCAL='/etc/data/projects'
+LOCAL="/tmp/geneappdata"
+PRJ='/projects'
+PROJECTS=LOCAL+PRJ
 LIMIT=10
 
 app = Flask(__name__)
@@ -30,14 +32,14 @@ def root():
 def server():
     store = 'store is ok.'
     try:
-        if not os.path.isdir(LOCAL):
-            os.mkdir(LOCAL)
+        if not os.path.isdir(PROJECTS):
+            os.makedirs(PROJECTS)
         with open(f'{LOCAL}/server.txt', 'w') as fo:
             fo.write('server ok.\n')
     except:
         store = 'ERROR in store.'
     return {
-        "servidor": str(subprocess.run(["ls", "-l", "/etc/data"], capture_output=True)),
+        "servidor": str(subprocess.run(["ls", "-l", LOCAL], capture_output=True)),
         "store": store
         }
 
@@ -45,9 +47,13 @@ def server():
 @app.route("/criar_projeto")
 def criar_projeto():
     server()
-    assert len(os.listdir(LOCAL)) < LIMIT
+    assert len(os.listdir(PROJECTS)) < LIMIT
     id = str(uuid.uuid4())
     local = datetime.today().strftime("%Y-%m-%d")
-    path = f'{LOCAL}/{local}_{id}'
-    os.makedirs(path)
+    path = f'{PRJ}/{local}_{id}'
+    os.makedirs(f"{LOCAL}/{path}")
     return path
+
+
+
+

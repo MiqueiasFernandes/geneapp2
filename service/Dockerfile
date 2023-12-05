@@ -8,7 +8,7 @@ RUN . /app/flask_env/bin/activate && pip install -r requirements.txt --no-cache-
 ENV PATH="/app/flask_env/bin:$PATH"
 
 COPY geneappscript.py .
-RUN mkdir -p /etc/data/results && ls > /etc/data/results/files.txt
+
 ENV FLASK_APP geneappscript.py
 ENV FLASK_ENV development
 ENV FLASK_RUN_PORT 9000

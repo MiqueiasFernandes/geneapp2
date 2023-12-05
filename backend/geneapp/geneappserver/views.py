@@ -23,8 +23,8 @@ class CRUD:
         data = JSONParser().parse(request)
         serializer = self.seralizer(data=data)
         if(serializer.is_valid()):
-            serializer.save()
-            return JsonResponse(serializer.data, status=201), serializer
+            id= serializer.save().id
+            return JsonResponse(serializer.data, status=201), self.klass.objects.get(pk=id)
         return JsonResponse(serializer.errors, status=400), None
     
     def update(self, request, item):
@@ -67,7 +67,20 @@ crud_projetos = CRUD(Projeto, ProjetoSerializer)
 def projetos(request):
     response, obj = crud_projetos.handle(request)
     if obj:
-        criar_proj()
+        try:
+            print('*1****###')
+            obj.path = str(criar_proj())
+            print('***2***###')
+            obj.save()
+            print('*3*****###')
+            json = crud_projetos.seralizer(obj).data
+            print('******###')
+            print(json)
+            write_data(f"{obj.path}/geneapp.txt", str(json))
+            return JsonResponse(json, safe=False)
+        except:
+            obj.delete()
+            return HttpResponse(status=507)
     return response
 
 def projeto(request, pk):
