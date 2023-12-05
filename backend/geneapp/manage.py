@@ -16,7 +16,7 @@ def main():
             "forget to activate a virtual environment?"
         ) from exc
     
-    print(f"""
+    print(f""" 
 starting GeneAPPSERVER PROFILE : {os.environ.get('DJANGO_PROF', 'DEV')}....
       ██████╗ ███████╗███╗   ██╗███████╗ █████╗ ██████╗ ██████╗ 
      ██╔════╝ ██╔════╝████╗  ██║██╔════╝██╔══██╗██╔══██╗██╔══██╗

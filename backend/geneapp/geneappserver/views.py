@@ -7,6 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, JsonResponse
 from .serializers import ProjetoSerializer
 from .models import  Projeto
+from .geneappscript import *
 
 class CRUD:
     def __init__(self, klass, serializer) -> None:
@@ -23,12 +24,12 @@ class CRUD:
         serializer = self.seralizer(data=data)
         if(serializer.is_valid()):
             serializer.save()
-            return JsonResponse(serializer.data, status=201)
-        return JsonResponse(serializer.errors, status=400)
+            return JsonResponse(serializer.data, status=201), serializer
+        return JsonResponse(serializer.errors, status=400), None
     
     def update(self, request, item):
         data = JSONParser().parse(request) 
-        serializer = self.klas(item, data=data) 
+        serializer = self.klass(item, data=data) 
         if(serializer.is_valid()):  
             serializer.save() 
             return JsonResponse(serializer.data, status=201)
@@ -39,30 +40,37 @@ class CRUD:
         return HttpResponse(status=204)
     
     def handle(self, request, pk=None):
-        if(request.method == 'GET'):
-            return self.list()
+        if request.method == 'GET':
+            if pk is None:
+                return self.list(), None
         elif(request.method == 'POST'): 
             return self.create(request)
-        
-        try:
-            item = self.klas.objects.get(pk=pk)
-        except:
-            return HttpResponse(status=404)
-        
-        if(request.method == 'PUT'):
-            return self.update(request, item)
-        elif(request.method == 'DELETE'):
-            return self.delete(item)
 
-        return HttpResponse(status=400)
+        try:
+            item = self.klass.objects.get(pk=pk)
+        except:
+            return HttpResponse(status=404), None
+        
+        if request.method == 'GET':
+            return JsonResponse(self.seralizer(item).data, safe=False), item
+        elif request.method == 'PUT':
+            return self.update(request, item), item
+        elif request.method == 'DELETE':
+            return self.delete(item), item
+
+        return HttpResponse(status=400), None
 
 
 crud_projetos = CRUD(Projeto, ProjetoSerializer)
 
 @csrf_exempt
 def projetos(request):
-    return crud_projetos.handle(request)
+    response, obj = crud_projetos.handle(request)
+    if obj:
+        criar_proj()
+    return response
 
 def projeto(request, pk):
-    return crud_projetos.handle(request, pk)
+    response, obj = crud_projetos.handle(request, pk)
+    return response
 

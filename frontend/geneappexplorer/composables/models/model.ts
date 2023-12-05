@@ -5,7 +5,5 @@ export default class Model<T> {
     public async list(): Promise<T[]> {
         return await apiFetch(this.href);
     }
-    
-    public serialize = () => JSON.stringify(this);
 
 }

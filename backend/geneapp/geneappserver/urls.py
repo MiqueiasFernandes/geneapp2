@@ -5,6 +5,7 @@ from geneappserver import views
 urlpatterns = [
 
     path('projetos', views.projetos),
+    path('projetos/', views.projetos),
     path('projetos/<int:pk>', views.projeto),
 
 ]

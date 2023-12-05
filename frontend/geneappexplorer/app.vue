@@ -65,4 +65,6 @@ const paginas = [
       </span>
     </div>
   </div>
+
+  <UNotifications />
 </template>

@@ -1,33 +1,10 @@
 
 <script setup lang="ts">
-// import type { FormError, FormSubmitEvent } from '#ui/types'
-// import { Projeto, type IProjeto } from '~/composables/models/projeto';
-
-// const salvou = ref(false);
-// const projeto = useProjeto();
-// const genes = await apiFetch('/genes') ///await $fetch('http://localhost:8000/api/genes')
-// console.log(genes)
-
-// const projetos = ref(await Projeto.api.list());
-
-// const validate = (state: any): FormError[] => {
-//     const errors = []
-//     if (!state.nome) errors.push({ path: 'nome', message: 'Insira um nome valido' })
-//     return errors
-// }
-
-// async function onSubmit(form: FormSubmitEvent<any>) {
-//     const projeto: IProjeto = form.data;
-//     apiFetch('/projetos', {
-//         method: 'POST',
-//         body: projeto
-//     }).then(() => (salvou.value = true) && Projeto.api.list().then(ps => projetos.value = ps))
-// }
-
 import type { FormError, FormSubmitEvent } from '#ui/types'
 import { Projeto, type IProjeto } from '../composables/models/projeto';
 import type { ISample } from '../composables/models/sample';
 
+const toast = useToast()
 const LBS = ['SHORT_PAIRED', 'SHORT_SINGLE', 'LONG_SINGLE']
 const example: IProjeto = {
     name: "Project EXPPATOG",
@@ -109,14 +86,36 @@ const validate = (state: any): FormError[] => {
     return [] ///errors
 }
 
+const status = ref(0)
+
 async function onSubmit(event: FormSubmitEvent<any>) {
-    // Do something with data
-    console.log(event.data)
+    status.value = 1;
+    apiFetch('/projetos', {
+        method: 'POST',
+        body: JSON.stringify(projeto.value)
+    }).then(() => {
+        status.value = 2;
+        toast.add({
+            id: 'save_prj',
+            title: `Project ${projeto.value.name} created`,
+            description: 'Your project was created now.',
+            icon: 'i-heroicons-rocket-launch',
+            color: "emerald", timeout: 10000
+        })
+    })
+        .catch(() => {
+            status.value = 0;
+            toast.add({
+                id: 'error_save_prj',
+                title: 'Error',
+                description: 'Fail on save the project. Try again',
+                icon: 'i-heroicons-exclamation-triangle',
+                color: "rose", timeout: 20000
+            });
+        })
 }
 
-
 </script>
-
 
 <template>
     {{ projeto }}
@@ -162,52 +161,53 @@ async function onSubmit(event: FormSubmitEvent<any>) {
 
             <template #configure>
 
-                <UForm :validate="validate" :state="projeto" class="space-y-4 py-2 px-8" @submit="onSubmit">
+                <UForm :validate="validate" :state="projeto" class="space-y-4 py-2 px-8"
+                    @submit="onSubmit">
 
                     <UCard>
-
                         <UFormGroup label="Project name" name="name">
-                            <UInput v-model="projeto.name" />
+                            <UInput v-model="projeto.name"  :disabled="status > 0"/>
                         </UFormGroup>
                         <UFormGroup label="Organism" name="organism" class="mt-6">
-                            <UInput v-model="projeto.organism" placeholder="ex.: Homo Sapiens" class="italic" />
+                            <UInput v-model="projeto.organism" placeholder="ex.: Homo Sapiens" class="italic"  :disabled="status > 0"/>
                         </UFormGroup>
 
                         <UDivider label="Input files" class="my-6" />
                         <div class="flex items-center mt-2">
-                            <UToggle v-model="projeto.online" class="mr-2" /> Get from remote url
+                            <UToggle v-model="projeto.online" class="mr-2"  :disabled="status > 0"/> Get from remote url
                         </div>
                         <UFormGroup label="Genome FASTA file" name="genome" class="mt-6">
-                            <UInput v-model="projeto.genome" />
+                            <UInput v-model="projeto.genome"  :disabled="status > 0"/>
                         </UFormGroup>
                         <UFormGroup label="Anotattion GFF3 file" name="anotattion" class="mt-6">
-                            <UInput v-model="projeto.anotattion" />
+                            <UInput v-model="projeto.anotattion"  :disabled="status > 0"/>
                         </UFormGroup>
                         <UFormGroup label="Proteome FAA file" name="proteome" class="mt-6">
-                            <UInput v-model="projeto.proteome" />
+                            <UInput v-model="projeto.proteome"  :disabled="status > 0"/>
                         </UFormGroup>
                         <UFormGroup label="Transcripts FNA file" name="transcriptome" class="mt-6">
-                            <UInput v-model="projeto.transcriptome" />
+                            <UInput v-model="projeto.transcriptome"  :disabled="status > 0"/>
                         </UFormGroup>
 
-                        <UDivider label="Contrast group" class="my-6"/>
-                        <USelect v-model="projeto.library" :options="LBS"  placeholder="Library layout" class="w-48" color="primary"/>
+                        <UDivider label="Contrast group" class="my-6" />
+                        <USelect v-model="projeto.library" :options="LBS" placeholder="Library layout" class="w-48"
+                            color="primary"  :disabled="status > 0"/>
                         <div class="w-full flex justify-around mt-6">
                             <div class="text-center w-1/3 p-2">
                                 <UFormGroup label="Label for control" name="control" class="mb-4">
-                                    <UInput v-model="projeto.control" />
+                                    <UInput v-model="projeto.control"  :disabled="status > 0"/>
                                 </UFormGroup>
 
                                 <div v-for="sample in projeto.ctrl_samples" class="pt-2 mx-4 w-full flex justify-around">
                                     <div class="w-2/3">
-                                        <UInput v-model="sample.acession" :placeholder="sample.name" />
+                                        <UInput v-model="sample.acession" :placeholder="sample.name"  :disabled="status > 0"/>
                                     </div>
                                     <div class="w-1/3">
-                                        <UButton icon="i-heroicons-x-mark" color="red" variant="soft"
+                                        <UButton icon="i-heroicons-x-mark" color="red" variant="soft"  :disabled="status > 0"
                                             @click="projeto.ctrl_samples = projeto.ctrl_samples.filter(x => x !== sample)" />
                                     </div>
                                 </div>
-                                <UButton icon="i-heroicons-plus" color="emerald" variant="soft" class="m-6"
+                                <UButton icon="i-heroicons-plus" color="emerald" variant="soft" class="m-6"  :disabled="status > 0"
                                     @click="projeto.ctrl_samples.push({ name: projeto.control + (projeto.ctrl_samples.length + 1) } as ISample)">
                                     Sample
                                 </UButton>
@@ -215,19 +215,19 @@ async function onSubmit(event: FormSubmitEvent<any>) {
 
                             <div class="text-center w-1/3 p-2">
                                 <UFormGroup label="Label for treatment" name="treatment" class="mb-4">
-                                    <UInput v-model="projeto.treatment" />
+                                    <UInput v-model="projeto.treatment"  :disabled="status > 0"/>
                                 </UFormGroup>
 
                                 <div v-for="sample in projeto.treat_samples" class="pt-2 mx-4 w-full flex justify-around">
                                     <div class="w-2/3">
-                                        <UInput v-model="sample.acession" :placeholder="sample.name" />
+                                        <UInput v-model="sample.acession" :placeholder="sample.name"  :disabled="status > 0"/>
                                     </div>
                                     <div class="w-1/3">
-                                        <UButton icon="i-heroicons-x-mark" color="red" variant="soft"
+                                        <UButton icon="i-heroicons-x-mark" color="red" variant="soft"  :disabled="status > 0"
                                             @click="projeto.treat_samples = projeto.treat_samples.filter(x => x !== sample)" />
                                     </div>
                                 </div>
-                                <UButton icon="i-heroicons-plus" color="emerald" variant="soft" class="m-6"
+                                <UButton icon="i-heroicons-plus" color="emerald" variant="soft" class="m-6"  :disabled="status > 0"
                                     @click="projeto.treat_samples.push({ name: projeto.treatment + (projeto.treat_samples.length + 1) } as ISample)">
                                     Sample
                                 </UButton>
@@ -239,28 +239,28 @@ async function onSubmit(event: FormSubmitEvent<any>) {
 
                         <div class="w-full flex justify-around">
                             <div class="w-1/3 p-2">
-                                <UCheckbox v-model="projeto.fast" name="fast" label="Enable fast mode" />
+                                <UCheckbox v-model="projeto.fast" name="fast" label="Enable fast mode"  :disabled="status > 0"/>
 
                                 <UFormGroup label="Read length" hint="used in rMATS" class="mt-6">
-                                    <UInput type="number" v-model="projeto.rmats_readLength" />
+                                    <UInput type="number" min="10" max="1000" v-model="projeto.rmats_readLength"  :disabled="status > 0"/>
                                 </UFormGroup>
                                 <UFormGroup label="PSI" hint="at least to DAS" class="mt-6">
-                                    <UInput type="number" v-model="projeto.psi" />
+                                    <UInput type="number" min="0" max="9" step=".0000001" v-model="projeto.psi"  :disabled="status > 0"/>
                                 </UFormGroup>
                                 <UFormGroup label="Qvalue" hint="FDR adjusted Pvalue" class="mt-6">
-                                    <UInput type="number" v-model="projeto.qvalue" />
+                                    <UInput type="number" min="0" max="2" step=".0000000000001" v-model="projeto.qvalue"  :disabled="status > 0"/>
                                 </UFormGroup>
                             </div>
                             <div class="text-center w-1/3">
                                 <div class=" border-solid border-2 border-indigo-100 rounded-md p-4">
                                     <UFormGroup label="CPU" :hint="`${projeto.threads}`">
-                                        <URange :min="1" :max="100" v-model="projeto.threads" />
+                                        <URange :min="1" :max="100" v-model="projeto.threads"  :disabled="status > 0"/>
                                     </UFormGroup>
                                     <UFormGroup label="RAM" :hint="`${projeto.ram}`" class="mt-6">
-                                        <URange :min="1" :max="100" v-model="projeto.ram" />
+                                        <URange :min="1" :max="100" v-model="projeto.ram"  :disabled="status > 0"/>
                                     </UFormGroup>
                                     <UFormGroup label="Disk" :hint="`${projeto.disk}`" class="mt-6">
-                                        <URange :min="1" :max="100" v-model="projeto.disk" />
+                                        <URange :min="1" :max="100" v-model="projeto.disk"  :disabled="status > 0"/>
                                     </UFormGroup>
                                 </div>
                             </div>
@@ -268,13 +268,13 @@ async function onSubmit(event: FormSubmitEvent<any>) {
 
                         <template #footer>
                             <div class="flex justify-around">
-                                <UButton icon="i-heroicons-trash" color="red" @click="projeto = Projeto.model()">
+                                <UButton icon="i-heroicons-trash" color="red" @click="projeto = Projeto.model()" :disabled="status > 0">
                                     Clear from
                                 </UButton>
-                                <UButton type="submit" icon="i-heroicons-check">
+                                <UButton type="submit" icon="i-heroicons-check" :loading="status == 1" :disabled="status > 0">
                                     Save project
                                 </UButton>
-                                <UButton icon="i-heroicons-bolt" color="emerald" @click="projeto = example">
+                                <UButton icon="i-heroicons-bolt" color="emerald" @click="projeto = example" :disabled="status > 0">
                                     Load example
                                 </UButton>
                             </div>

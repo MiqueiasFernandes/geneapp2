@@ -4,5 +4,5 @@ from .models import Projeto
 class ProjetoSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Projeto
-        fields = ['id', 'nome', 'path',  'created_at']
+        fields = ['id', 'name', 'path',  'created_at', 'organism']
 
