@@ -40,7 +40,7 @@ const items = reactive([{
 }, {
     label: '2. Project setup',
     icon: 'i-heroicons-pencil-square',
-    disabled: true, slot: 'configure'
+    disabled: false, slot: 'configure'
 }, {
     label: '3. Download data',
     icon: 'i-heroicons-arrow-down-tray',
@@ -88,10 +88,13 @@ const validate = (state: any): FormError[] => {
 
 async function onSubmit(event: FormSubmitEvent<any>) {
     step.value = 2;
-    apiFetch('/projetos', {
-        method: 'POST',
-        body: JSON.stringify(projeto.value)
-    }).then(() => {
+    // apiFetch('/projetos', {
+    //     method: 'POST',
+    //     body: JSON.stringify(projeto.value)
+    // })
+    Projeto.api.create(projeto.value)
+    .then((nproj) => {
+        console.log(nproj)
         step.value = 3;
         items[2].disabled = !(items[1].disabled = true);
         toast.add({
@@ -112,6 +115,23 @@ async function onSubmit(event: FormSubmitEvent<any>) {
                 color: "rose", timeout: 20000
             });
         })
+}
+
+function baixar() {
+    apiFetch('/projetos', {
+        method: 'PUT',
+        body: JSON.stringify(projeto.value)
+    }).then(() => {
+        step.value = 3;
+        items[2].disabled = !(items[1].disabled = true);
+        toast.add({
+            id: 'save_prj',
+            title: `Project ${projeto.value.name} created`,
+            description: 'Your project was created now.',
+            icon: 'i-heroicons-rocket-launch',
+            color: "emerald", timeout: 10000
+        })
+    })
 }
 
 </script>
@@ -147,7 +167,9 @@ async function onSubmit(event: FormSubmitEvent<any>) {
                     <UCheckbox v-model="terms.c" class="mt-2" required @change="terms_review()" :disabled="terms.c">
                         <template #label>
                             <span>
-                                <b>Terms of use:</b> I agree to the following. GeneApp uses cookies to track my activity and
+                                <b>Terms of use:</b> By using GeneApp, you acknowledge that projects created on the server
+                                http://bioinfo.icb.ufmg.br/geneapp are publicly visible and will be deleted after 7 days or
+                                during scheduled server maintenance. GeneApp uses cookies to track my activity and
                                 preferences. I can disable cookies in my browser settings. The email address may be used to
                                 consume NCBI and InterPro APIs. GeneApp does not save any personal data about me. GeneApp is
                                 still under development. The results of any analysis performed with GeneApp should be
@@ -293,23 +315,19 @@ async function onSubmit(event: FormSubmitEvent<any>) {
                 </UForm>
             </template>
 
-            <template #download>
-                
-                
+            <template as="div" class="my-2 mx-8" #download>
 
-                <UAlert v-if="projeto.online"
-                icon="i-heroicons-information-circle" 
-                color="sky" 
-                variant="subtle" 
-                title="Heads up!"
-                description="infor se baixar tem q ser zipado" />
 
-                <UAlert v-if="projeto.online"
-                icon="i-heroicons-information-circle" 
-                color="sky" 
-                variant="subtle" 
-                title="Heads up!"
-                description="infor se copiar tem q ta na pasta ja descomp" />
+
+                <UAlert v-if="projeto.online" icon="i-heroicons-information-circle" color="sky" variant="subtle"
+                    title="Heads up!" description="infor se baixar tem q ser zipado" />
+
+                <UAlert v-if="projeto.online" icon="i-heroicons-information-circle" color="sky" variant="subtle"
+                    title="Heads up!" description="infor se copiar tem q ta na pasta ja descomp" />
+
+                <UButton @click="baixar">Baixar</UButton>
+
+                <UMeter  icon="i-heroicons-server" size="md" indicator label="CPU Load" :value="75.4" class="mt-6"/>
 
             </template>
         </UAccordion>

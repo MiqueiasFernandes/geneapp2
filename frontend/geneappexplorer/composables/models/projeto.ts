@@ -44,7 +44,9 @@ export interface IProjeto {
 }
 
 export class Projeto extends Model<IProjeto> {
+
     public static api = new Projeto(API);
+
     public static model = () => ({
         name: 'Geneapp Project',
         control: 'Control', treatment: 'Treatment',
@@ -52,4 +54,5 @@ export class Projeto extends Model<IProjeto> {
         treat_samples: [] as ISample[], ctrl_samples: [] as ISample[],
         threads: 1, ram: 1, disk: 5, psi: .1, qvalue: .05
     } as IProjeto)
+
 }

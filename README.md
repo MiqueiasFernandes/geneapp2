@@ -24,9 +24,9 @@
 -service
    cd geneapp2
    docker compose down && docker compose build
-   docker run -p 9000:9000 geneapp2-flask
+   docker run -p 9000:9000 -v ./data:/tmp/geneappdata geneapp2-flask
 
-#########   como buildar para prd  #########  
+#########   como biudar para prd  #########  
   cd deply_prd_dir
   git clone ....
   configurar variaveis

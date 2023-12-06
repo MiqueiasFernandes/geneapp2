@@ -14,4 +14,9 @@ ENV FLASK_ENV development
 ENV FLASK_RUN_PORT 9000
 ENV FLASK_RUN_HOST 0.0.0.0
 
+#RUN <<EOF
+#addgroup -S geneapp
+#adduser -S --shell /bin/bash --ingroup geneapp geneappusr
+#EOF
+
 CMD ["flask", "run"]

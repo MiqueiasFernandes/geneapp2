@@ -80,7 +80,7 @@ def copiar_arquivo(arquivo, out):
     projeto = request.form['projeto']
     p = Popen(["cp", f'{PROJECTS}/inputs/{arquivo}', 
                f'{LOCAL}/{projeto}/inputs/{out}'], 
-               stdout=PIPE, stderr=PIPE)
+               stdout=PIPE, stderr=PIPE, user='geneappusr')
     output, error = p.communicate()
     return {'arquivo': out, 
             'status': p.returncode == 0, 
@@ -92,7 +92,8 @@ def baixar_arquivo(out):
     projeto = request.form['projeto']
     arquivo = clean(request.form['arquivo'])
     fo = f'{LOCAL}/{projeto}/inputs/{out}'
-    p = Popen(["wget", "-qO", f"{fo}.gz", arquivo], stdout=PIPE, stderr=PIPE)
+    p = Popen(["wget", "-qO", f"{fo}.gz", arquivo], 
+              stdout=PIPE, stderr=PIPE, user='geneappusr')
     output, error = p.communicate()
     return {'arquivo': f"{out}.gz", 
             'status': p.returncode == 0, 
