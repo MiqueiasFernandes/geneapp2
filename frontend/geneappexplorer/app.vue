@@ -2,6 +2,7 @@
 const runtimeConfig = useRuntimeConfig()
 
 const paginas = [
+  { nome: 'Guide', href: '/guide' },
   { nome: 'GeneappScript', href: '/geneappscript' },
   { nome: 'GeneappService', href: '/geneappservice' },
   { nome: 'GeneappExplorer', href: '/geneappexplorer' },

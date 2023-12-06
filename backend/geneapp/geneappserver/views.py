@@ -68,13 +68,9 @@ def projetos(request):
     response, obj = crud_projetos.handle(request)
     if obj:
         try:
-            print('*1****###')
             obj.path = str(criar_proj())
-            print('***2***###')
             obj.save()
-            print('*3*****###')
             json = crud_projetos.seralizer(obj).data
-            print('******###')
             print(json)
             write_data(f"{obj.path}/geneapp.txt", str(json))
             return JsonResponse(json, safe=False)

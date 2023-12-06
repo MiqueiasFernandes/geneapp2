@@ -38,3 +38,17 @@
  - somente é admitido uso em pesquisa sem fim comercial
  - o resultados devem ser validados pelo pesquisador
  - os softwares que o geneapp executa como rmats e 3dranseq tem licencas especificas que devem ser obervadas
+
+
+
+
+mkdir /tmp/geneappdata/projects/2023-12-05_e3576547-0d65-4dbe-8f12-fbd7caab4312/inputs -p
+
+ ### copiar
+curl -d "projeto=projects/2023-12-05_e3576547-0d65-4dbe-8f12-fbd7caab4312" -X POST http://localhost:9000/copiar_arquivo/server.txt/servidor.txt
+
+### baixar 
+curl -d "projeto=projects/2023-12-05_e3576547-0d65-4dbe-8f12-fbd7caab4312" -d "arquivo=https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_rna.fna.gz" -X POST http://localhost:9000/baixar_arquivo/transcritos.fna
+
+### descompactar
+curl -d "projeto=projects/2023-12-05_e3576547-0d65-4dbe-8f12-fbd7caab4312" -X POST http://localhost:9000/descomprimir_arquivo/transcritos.fna.gz
