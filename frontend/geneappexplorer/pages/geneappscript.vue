@@ -32,6 +32,8 @@ const step = ref(0)
 const terms = ref({ a: true, b: true, c: true })
 const projeto = useProjeto();
 
+const lst = ref([] as IProjeto[]) 
+Projeto.api.list().then(rs => lst.value = rs);
 
 const items = reactive([{
     label: '1. Terms and conditions',
@@ -94,13 +96,13 @@ async function onSubmit(event: FormSubmitEvent<any>) {
     // })
     Projeto.api.create(projeto.value)
     .then((nproj) => {
-        console.log(nproj)
+        projeto.value = nproj;
         step.value = 3;
         items[2].disabled = !(items[1].disabled = true);
         toast.add({
             id: 'save_prj',
-            title: `Project ${projeto.value.name} created`,
-            description: 'Your project was created now.',
+            title: `Project [${projeto.value.id}]: ${projeto.value.name} created`,
+            description: `Your project ${projeto.value.path} was created now.`,
             icon: 'i-heroicons-rocket-launch',
             color: "emerald", timeout: 10000
         })
@@ -137,6 +139,7 @@ function baixar() {
 </script>
 
 <template>
+    {{ lst  }}
     {{ projeto }}
 
     <div class="flex justify-center">
