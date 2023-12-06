@@ -18,21 +18,21 @@ const example: IProjeto = {
     proteome: "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_protein.faa.gz",
     transcriptome: "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_rna.fna.gz",
     library: LBS[0],
-    ctrl_samples: [
-        { acession: "SRR2513862", name: "ctrl1" },
-        { acession: "SRR2513863", name: "ctrl2" },
-        { acession: "SRR2513864", name: "ctrl3" }],
-    treat_samples: [
-        { acession: "SRR2513867", name: "trt1" },
-        { acession: "SRR2513868", name: "trt2" },
-        { acession: "SRR2513869", name: "trt3" }],
+    samples: [
+        { acession: "SRR2513862", name: "ctrl1", group: 'WILD' },
+        { acession: "SRR2513863", name: "ctrl2", group: 'WILD' },
+        { acession: "SRR2513864", name: "ctrl3", group: 'WILD' },
+        { acession: "SRR2513867", name: "trt1", group: 'TREATED' },
+        { acession: "SRR2513868", name: "trt2", group: 'TREATED' },
+        { acession: "SRR2513869", name: "trt3", group: 'TREATED' }],
     threads: 1, ram: 2, disk: 10, fast: false, qvalue: .05, psi: .1
 }
+const projeto = reactive(Projeto.model())
+const set_example = () => Object.assign(projeto, example)
+const new_smp = (t: string) => `${t}${projeto.samples.filter(x => x.group === t).length + 1}`
 const step = ref(0)
-const terms = ref({ a: true, b: true, c: true })
-const projeto = useProjeto();
-
-const lst = ref([] as IProjeto[]) 
+const terms = reactive({ a: true, b: true, c: true })
+const lst = ref([] as IProjeto[])
 Projeto.api.list().then(rs => lst.value = rs);
 
 const items = reactive([{
@@ -58,7 +58,7 @@ const items = reactive([{
 }])
 
 const terms_review = () => {
-    if (terms.value.a && terms.value.b && terms.value.c) {
+    if (terms.a && terms.b && terms.c) {
         step.value = 1;
         items[1].disabled = false;
     }
@@ -90,23 +90,20 @@ const validate = (state: any): FormError[] => {
 
 async function onSubmit(event: FormSubmitEvent<any>) {
     step.value = 2;
-    // apiFetch('/projetos', {
-    //     method: 'POST',
-    //     body: JSON.stringify(projeto.value)
-    // })
-    Projeto.api.create(projeto.value)
-    .then((nproj) => {
-        projeto.value = nproj;
-        step.value = 3;
-        items[2].disabled = !(items[1].disabled = true);
-        toast.add({
-            id: 'save_prj',
-            title: `Project [${projeto.value.id}]: ${projeto.value.name} created`,
-            description: `Your project ${projeto.value.path} was created now.`,
-            icon: 'i-heroicons-rocket-launch',
-            color: "emerald", timeout: 10000
+    Projeto.api.create(projeto)
+        .then((nproj) => {
+            console.log(projeto)
+            console.log(nproj)
+            step.value = 3;
+            items[2].disabled = !(items[1].disabled = true);
+            toast.add({
+                id: 'save_prj',
+                title: `Project [${projeto.id}]: ${projeto.name} created`,
+                description: `Your project ${projeto.path} was created now.`,
+                icon: 'i-heroicons-rocket-launch',
+                color: "emerald", timeout: 10000
+            })
         })
-    })
         .catch(() => {
             step.value = 1;
             toast.add({
@@ -122,13 +119,13 @@ async function onSubmit(event: FormSubmitEvent<any>) {
 function baixar() {
     apiFetch('/projetos', {
         method: 'PUT',
-        body: JSON.stringify(projeto.value)
+        body: JSON.stringify(projeto)
     }).then(() => {
         step.value = 3;
         items[2].disabled = !(items[1].disabled = true);
         toast.add({
             id: 'save_prj',
-            title: `Project ${projeto.value.name} created`,
+            title: `Project ${projeto.name} created`,
             description: 'Your project was created now.',
             icon: 'i-heroicons-rocket-launch',
             color: "emerald", timeout: 10000
@@ -139,7 +136,7 @@ function baixar() {
 </script>
 
 <template>
-    {{ lst  }}
+    {{ lst }}
     {{ projeto }}
 
     <div class="flex justify-center">
@@ -217,44 +214,49 @@ function baixar() {
                         <USelect v-model="projeto.library" :options="LBS" placeholder="Library layout" class="w-48"
                             color="primary" :disabled="step > 1" />
                         <div class="w-full flex justify-around mt-6">
+
                             <div class="text-center w-1/3 p-2">
                                 <UFormGroup label="Label for control" name="control" class="mb-4">
-                                    <UInput v-model="projeto.control" :disabled="step > 1" />
+                                    <UInput v-model="projeto.control"
+                                        :disabled="step > 1 || projeto.samples.filter(x => x.group === projeto.control).length > 0" />
                                 </UFormGroup>
 
-                                <div v-for="sample in projeto.ctrl_samples" class="pt-2 mx-4 w-full flex justify-around">
+                                <div v-for="sample in projeto.samples.filter(x => x.group === projeto.control)"
+                                    class="pt-2 mx-4 w-full flex justify-around">
                                     <div class="w-2/3">
                                         <UInput v-model="sample.acession" :placeholder="sample.name" :disabled="step > 1" />
                                     </div>
                                     <div class="w-1/3">
                                         <UButton icon="i-heroicons-x-mark" color="red" variant="soft" :disabled="step > 1"
-                                            @click="projeto.ctrl_samples = projeto.ctrl_samples.filter(x => x !== sample)" />
+                                            @click="projeto.samples = projeto.samples.filter(x => x !== sample)" />
                                     </div>
                                 </div>
                                 <UButton icon="i-heroicons-plus" color="emerald" variant="soft" class="m-6"
                                     :disabled="step > 1"
-                                    @click="projeto.ctrl_samples.push({ name: projeto.control + (projeto.ctrl_samples.length + 1) } as ISample)">
+                                    @click="projeto.samples.push({ name: new_smp(projeto.control), group: projeto.control } as ISample)">
                                     Sample
                                 </UButton>
                             </div>
 
                             <div class="text-center w-1/3 p-2">
                                 <UFormGroup label="Label for treatment" name="treatment" class="mb-4">
-                                    <UInput v-model="projeto.treatment" :disabled="step > 1" />
+                                    <UInput v-model="projeto.treatment"
+                                        :disabled="step > 1 || projeto.samples.filter(x => x.group === projeto.treatment).length > 0" />
                                 </UFormGroup>
 
-                                <div v-for="sample in projeto.treat_samples" class="pt-2 mx-4 w-full flex justify-around">
+                                <div v-for="sample in projeto.samples.filter(x => x.group === projeto.treatment)"
+                                    class="pt-2 mx-4 w-full flex justify-around">
                                     <div class="w-2/3">
                                         <UInput v-model="sample.acession" :placeholder="sample.name" :disabled="step > 1" />
                                     </div>
                                     <div class="w-1/3">
                                         <UButton icon="i-heroicons-x-mark" color="red" variant="soft" :disabled="step > 1"
-                                            @click="projeto.treat_samples = projeto.treat_samples.filter(x => x !== sample)" />
+                                            @click="projeto.samples = projeto.samples.filter(x => x !== sample)" />
                                     </div>
                                 </div>
                                 <UButton icon="i-heroicons-plus" color="emerald" variant="soft" class="m-6"
                                     :disabled="step > 1"
-                                    @click="projeto.treat_samples.push({ name: projeto.treatment + (projeto.treat_samples.length + 1) } as ISample)">
+                                    @click="projeto.samples.push({ name: new_smp(projeto.treatment), group: projeto.treatment } as ISample)">
                                     Sample
                                 </UButton>
                             </div>
@@ -308,7 +310,7 @@ function baixar() {
                                 <UButton type="submit" icon="i-heroicons-check" :loading="step == 2" :disabled="step > 1">
                                     Save project
                                 </UButton>
-                                <UButton icon="i-heroicons-bolt" color="emerald" @click="projeto = example"
+                                <UButton icon="i-heroicons-bolt" color="emerald" @click="set_example"
                                     :disabled="step > 1">
                                     Load example
                                 </UButton>
@@ -330,7 +332,7 @@ function baixar() {
 
                 <UButton @click="baixar">Baixar</UButton>
 
-                <UMeter  icon="i-heroicons-server" size="md" indicator label="CPU Load" :value="75.4" class="mt-6"/>
+                <UMeter icon="i-heroicons-server" size="md" indicator label="CPU Load" :value="75.4" class="mt-6" />
 
             </template>
         </UAccordion>

@@ -10,7 +10,7 @@ export default class Model<T> {
         return await apiFetch(this.href, {
             method: 'POST',
             body: JSON.stringify(obj)
-        }).then(r => Object.assign(r as any, obj) as T)
+        }).then(r => Object.assign(obj as any, r) as T)
     }
 
     public async get(id: number): Promise<T> {
@@ -21,7 +21,7 @@ export default class Model<T> {
         return await apiFetch(this.href, {
             method: 'PUT',
             body: JSON.stringify(obj)
-        }).then(r => Object.assign(r as any, obj) as T)
+        }).then(r => Object.assign(obj as any, r) as T)
     }
 
     public async delete(id: number): Promise<void> {

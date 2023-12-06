@@ -5,8 +5,8 @@ from django.shortcuts import render
 from rest_framework.parsers import JSONParser
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, JsonResponse
-from .serializers import ProjetoSerializer
-from .models import  Projeto
+from .serializers import ProjectSerializer, SampleSerializer
+from .models import  Project, Sample
 from .geneappscript import *
 
 class CRUD:
@@ -24,7 +24,8 @@ class CRUD:
         serializer = self.seralizer(data=data)
         if(serializer.is_valid()):
             id= serializer.save().id
-            return JsonResponse(serializer.data, status=201), self.klass.objects.get(pk=id)
+            obj = self.klass.objects.get(pk=id)
+            return JsonResponse(self.seralizer(obj).data, status=201), obj
         return JsonResponse(serializer.errors, status=400), None
     
     def update(self, request, item):
@@ -61,10 +62,10 @@ class CRUD:
         return HttpResponse(status=400), None
 
 
-crud_projetos = CRUD(Projeto, ProjetoSerializer)
+crud_projetos = CRUD(Project, ProjectSerializer)
 
 @csrf_exempt
-def projetos(request):
+def projects(request):
     response, obj = crud_projetos.handle(request)
     if obj:
         try:
@@ -79,7 +80,15 @@ def projetos(request):
             return HttpResponse(status=507)
     return response
 
-def projeto(request, pk):
+@csrf_exempt
+def project(request, pk):
     response, obj = crud_projetos.handle(request, pk)
     return response
 
+
+crud_samples = CRUD(Sample, SampleSerializer)
+
+@csrf_exempt
+def sample(request, pk = None):
+    response, _ = crud_projetos.handle(request, pk)
+    return response

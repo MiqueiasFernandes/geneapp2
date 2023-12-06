@@ -8,15 +8,10 @@ LOCAL = '/tmp/geneappdata' if os.environ.get('DJANGO_PROF') == 'PRD' else '/User
 
 def criar_proj():
     path = requests.get(GENEAPPSCRIPT_API+'/criar_projeto').text
-    time.sleep(10)
+    time.sleep(3)
     return path
 
 def write_data(fd, dt):
-    print('TENTANDO SALVAS REM: ', LOCAL, fd)
-    print('TENTANDO: ', dt)
     with open(f"{LOCAL}/{fd}", 'w') as fo:
         fo.write(dt)
-
-
-
 

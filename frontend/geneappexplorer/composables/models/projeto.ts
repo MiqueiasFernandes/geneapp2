@@ -1,7 +1,7 @@
 import Model from "./model";
 import type { ISample } from "./sample";
 
-const API = '/projetos'
+const API = '/project'
 
 export interface IProjeto {
 
@@ -12,14 +12,14 @@ export interface IProjeto {
     path?: string;
     organism: string;
     created_at?: string;
+    status?: number;
 
     genome: string;
     online: boolean;
     anotattion: string;
     proteome: string;
     transcriptome: string;
-    ctrl_samples: ISample[];
-    treat_samples: ISample[];
+    samples: ISample[];
     library: string;
 
     threads: number;
@@ -50,8 +50,8 @@ export class Projeto extends Model<IProjeto> {
     public static model = () => ({
         name: 'Geneapp Project',
         control: 'Control', treatment: 'Treatment',
-        online: true,
-        treat_samples: [] as ISample[], ctrl_samples: [] as ISample[],
+        online: true, 
+        samples: [] as ISample[],
         threads: 1, ram: 1, disk: 5, psi: .1, qvalue: .05
     } as IProjeto)
 

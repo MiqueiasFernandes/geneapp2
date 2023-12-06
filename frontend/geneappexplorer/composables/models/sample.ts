@@ -1,12 +1,13 @@
 import Model from "./model";
 
-const API = '/samples'
+const API = '/sample'
 
 export interface ISample {
     id?: number;
     name: string;
-    local_path?: string;
+    group: string;
     acession: string;
+    local_path?: string;
 }
 
 export class Sample extends Model<ISample> {
