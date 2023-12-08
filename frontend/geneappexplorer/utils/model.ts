@@ -1,30 +1,34 @@
+import { api } from "./api";
+
 export default class Model<T> {
 
-    constructor(public href: string) { }
+    private $fetch = api()
+
+    constructor(private href: string) { }
 
     public async list(): Promise<T[]> {
-        return await apiFetch(this.href);
+        return await this.$fetch(this.href);
     }
 
     public async create(obj: T): Promise<T> {
-        return await apiFetch(this.href, {
+        return await this.$fetch(this.href, {
             method: 'POST',
             body: JSON.stringify(obj)
         }).then(r => Object.assign(obj as any, r) as T)
     }
 
-    public async get(id: number): Promise<T> {
-        return await apiFetch(`${this.href}/${id}`);
+    public async find(id: number): Promise<T> {
+        return await this.$fetch(`${this.href}/${id}`);
     }
 
     public async update(obj: T): Promise<T> {
-        return await apiFetch(this.href, {
+        return await this.$fetch(this.href, {
             method: 'PUT',
             body: JSON.stringify(obj)
         }).then(r => Object.assign(obj as any, r) as T)
     }
 
     public async delete(id: number): Promise<void> {
-        return await apiFetch(`${this.href}/${id}`, { method: 'DELETE' });
+        return await this.$fetch(`${this.href}/${id}`, { method: 'DELETE' });
     }
 }

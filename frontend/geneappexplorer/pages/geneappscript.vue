@@ -1,13 +1,12 @@
 
 <script setup lang="ts">
 import type { FormError, FormSubmitEvent } from '#ui/types'
-import { Projeto, type IProjeto } from '../composables/models/projeto';
-import type { ISample } from '../composables/models/sample';
+import type { IProject, ISample } from '~/composables';
 const runtimeConfig = useRuntimeConfig()
 
 const toast = useToast()
 const LBS = ['SHORT_PAIRED', 'SHORT_SINGLE', 'LONG_SINGLE']
-const example: IProjeto = {
+const example: IProject = {
     name: "Project EXPPATOG",
     control: "WILD",
     treatment: "TREATED",
@@ -27,26 +26,27 @@ const example: IProjeto = {
         { acession: "SRR2513869", name: "trt3", group: 'TREATED' }],
     threads: 1, ram: 2, disk: 10, fast: false, qvalue: .05, psi: .1
 }
-const projeto = reactive(Projeto.model())
-const set_example = () => Object.assign(projeto, example)
-const new_smp = (t: string) => `${t}${projeto.samples.filter(x => x.group === t).length + 1}`
-const step = ref(0)
-const terms = reactive({ a: true, b: true, c: true })
-const lst = ref([] as IProjeto[])
-Projeto.api.list().then(rs => lst.value = rs);
+const project = reactive(Project.model())
+const load_project = ref()
+const set_example = () => Object.assign(project, example)
+const new_smp = (t: string) => `${t}${project.samples.filter(x => x.group === t).length + 1}`
+const terms = reactive({ a: false, b: false, c: false })
+const projects = await Project.api().list();
+const salvando = ref(false)
+const sel = ref(false)
 
 const items = reactive([{
     label: '1. Terms and conditions',
     icon: 'i-heroicons-information-circle',
-    defaultOpen: false, slot: 'terms'
+    defaultOpen: true, slot: 'terms'
 }, {
     label: '2. Project setup',
     icon: 'i-heroicons-pencil-square',
-    disabled: false, slot: 'configure'
+    disabled: true, slot: 'configure'
 }, {
     label: '3. Download data',
     icon: 'i-heroicons-arrow-down-tray',
-    defaultOpen: true, disabled: false, slot: 'download'
+    disabled: true, slot: 'download'
 }, {
     label: '4. Process and integration',
     icon: 'i-heroicons-wrench-screwdriver',
@@ -57,9 +57,19 @@ const items = reactive([{
     disabled: true, slot: 'results'
 }])
 
+function set_prj() {
+    const s = Object.assign(project, load_project.value).status;
+    terms.a = terms.b = terms.c = true;
+    items[1].disabled = s < 2;
+    items[2].disabled = s < 3;
+    items[3].disabled = s < 4;
+    items[4].disabled = s < 5;
+    sel.value = true;
+}
+
 const terms_review = () => {
     if (terms.a && terms.b && terms.c) {
-        step.value = 1;
+        project.status = 2;
         items[1].disabled = false;
     }
 };
@@ -89,23 +99,21 @@ const validate = (state: any): FormError[] => {
 }
 
 async function onSubmit(event: FormSubmitEvent<any>) {
-    step.value = 2;
-    Projeto.api.create(projeto)
-        .then((nproj) => {
-            console.log(projeto)
-            console.log(nproj)
-            step.value = 3;
+    salvando.value = true;
+    project.status = 3;
+    Project.api().create(project)
+        .then(() => {
             items[2].disabled = !(items[1].disabled = true);
             toast.add({
                 id: 'save_prj',
-                title: `Project [${projeto.id}]: ${projeto.name} created`,
-                description: `Your project ${projeto.path} was created now.`,
+                title: `Project [${project.id}]: ${project.name} created`,
+                description: `Your project ${project.path} was created now.`,
                 icon: 'i-heroicons-rocket-launch',
                 color: "emerald", timeout: 10000
             })
         })
         .catch(() => {
-            step.value = 1;
+            project.status = 2;
             toast.add({
                 id: 'error_save_prj',
                 title: 'Error',
@@ -114,33 +122,41 @@ async function onSubmit(event: FormSubmitEvent<any>) {
                 color: "rose", timeout: 20000
             });
         })
+        .finally(() => salvando.value = false)
 }
 
 function baixar() {
-    apiFetch('/projetos', {
-        method: 'PUT',
-        body: JSON.stringify(projeto)
-    }).then(() => {
-        step.value = 3;
-        items[2].disabled = !(items[1].disabled = true);
-        toast.add({
-            id: 'save_prj',
-            title: `Project ${projeto.name} created`,
-            description: 'Your project was created now.',
-            icon: 'i-heroicons-rocket-launch',
-            color: "emerald", timeout: 10000
-        })
-    })
+    // apiFetch('/projetos', {
+    //     method: 'PUT',
+    //     body: JSON.stringify(project)
+    // }).then(() => {
+    //     step.value = 3;
+    //     items[2].disabled = !(items[1].disabled = true);
+    //     toast.add({
+    //         id: 'save_prj',
+    //         title: `Project ${project.name} created`,
+    //         description: 'Your project was created now.',
+    //         icon: 'i-heroicons-rocket-launch',
+    //         color: "emerald", timeout: 10000
+    //     })
+    // })
 }
 
 </script>
 
 <template>
-    {{ lst }}
-    {{ projeto }}
+    <div v-if="projects.length > 0" class="flex inline mx-32 mt-8">
+        <USelectMenu v-model="load_project" :options="projects" class="w-48 mx-2" placeholder="Select an project" searchable
+            searchable-placeholder="Search by name or organism" option-attribute="name" by="id" clear-search-on-close
+            :search-attributes="['name', 'id', 'organism']" :disabled="sel" />
+        <UButton icon="i-heroicons-arrow-down-on-square-stack" @click="set_prj" :disabled="sel">
+            Load project</UButton>
+    </div>
 
     <div class="flex justify-center">
         <UAccordion :items="items" class="p-4 mx-12 mt-8 bg-white rounded-lg max-w-4xl">
+
+            <!-- etapa 1 -->
             <template #terms>
                 <div class=" px-2">
                     <UCheckbox v-model="terms.a" required @change="terms_review()" :disabled="terms.a">
@@ -180,83 +196,89 @@ function baixar() {
                 </div>
             </template>
 
+            <!-- etapa 2 -->
             <template #configure>
 
-                <UForm :validate="validate" :state="projeto" class="space-y-4 py-2 px-8" @submit="onSubmit">
+                <UForm :validate="validate" :state="project" class="space-y-4 py-2 px-8" @submit="onSubmit">
 
                     <UCard>
                         <UFormGroup label="Project name" name="name">
-                            <UInput v-model="projeto.name" :disabled="step > 1" />
+                            <UInput v-model="project.name" :disabled="project.status !== 2" />
                         </UFormGroup>
                         <UFormGroup label="Organism" name="organism" class="mt-6">
-                            <UInput v-model="projeto.organism" placeholder="ex.: Homo Sapiens" class="italic"
-                                :disabled="step > 1" />
+                            <UInput v-model="project.organism" placeholder="ex.: Homo Sapiens" class="italic"
+                                :disabled="project.status !== 2" />
                         </UFormGroup>
 
                         <UDivider label="Input files" class="my-6" />
                         <div class="flex items-center mt-2">
-                            <UToggle v-model="projeto.online" class="mr-2" :disabled="step > 1" /> Get from remote url
+                            <UToggle v-model="project.online" class="mr-2" :disabled="project.status !== 2" />
+                            Get from remote url
                         </div>
                         <UFormGroup label="Genome FASTA file" name="genome" class="mt-6">
-                            <UInput v-model="projeto.genome" :disabled="step > 1" />
+                            <UInput v-model="project.genome" :disabled="project.status !== 2" />
                         </UFormGroup>
                         <UFormGroup label="Anotattion GFF3 file" name="anotattion" class="mt-6">
-                            <UInput v-model="projeto.anotattion" :disabled="step > 1" />
+                            <UInput v-model="project.anotattion" :disabled="project.status !== 2" />
                         </UFormGroup>
                         <UFormGroup label="Proteome FAA file" name="proteome" class="mt-6">
-                            <UInput v-model="projeto.proteome" :disabled="step > 1" />
+                            <UInput v-model="project.proteome" :disabled="project.status !== 2" />
                         </UFormGroup>
                         <UFormGroup label="Transcripts FNA file" name="transcriptome" class="mt-6">
-                            <UInput v-model="projeto.transcriptome" :disabled="step > 1" />
+                            <UInput v-model="project.transcriptome" :disabled="project.status !== 2" />
                         </UFormGroup>
 
                         <UDivider label="Contrast group" class="my-6" />
-                        <USelect v-model="projeto.library" :options="LBS" placeholder="Library layout" class="w-48"
-                            color="primary" :disabled="step > 1" />
+                        <USelect v-model="project.library" :options="LBS" placeholder="Library layout" class="w-48"
+                            color="primary" :disabled="project.status !== 2" />
                         <div class="w-full flex justify-around mt-6">
 
                             <div class="text-center w-1/3 p-2">
                                 <UFormGroup label="Label for control" name="control" class="mb-4">
-                                    <UInput v-model="projeto.control"
-                                        :disabled="step > 1 || projeto.samples.filter(x => x.group === projeto.control).length > 0" />
+                                    <UInput v-model="project.control"
+                                        :disabled="project.status !== 2 || project.samples.filter(x => x.group === project.control).length > 0" />
                                 </UFormGroup>
 
-                                <div v-for="sample in projeto.samples.filter(x => x.group === projeto.control)"
+                                <div v-for="sample in project.samples.filter(x => x.group === project.control)"
                                     class="pt-2 mx-4 w-full flex justify-around">
                                     <div class="w-2/3">
-                                        <UInput v-model="sample.acession" :placeholder="sample.name" :disabled="step > 1" />
+                                        <UInput v-model="sample.acession" :placeholder="sample.name"
+                                            :disabled="project.status !== 2" />
                                     </div>
                                     <div class="w-1/3">
-                                        <UButton icon="i-heroicons-x-mark" color="red" variant="soft" :disabled="step > 1"
-                                            @click="projeto.samples = projeto.samples.filter(x => x !== sample)" />
+                                        <UButton icon="i-heroicons-x-mark" color="red" variant="soft"
+                                            v-if="project.status === 2"
+                                            @click="project.samples = project.samples.filter(x => x !== sample)" />
                                     </div>
                                 </div>
                                 <UButton icon="i-heroicons-plus" color="emerald" variant="soft" class="m-6"
-                                    :disabled="step > 1"
-                                    @click="projeto.samples.push({ name: new_smp(projeto.control), group: projeto.control } as ISample)">
+                                    v-if="project.status === 2"
+                                    @click="project.samples.push({ name: new_smp(project.control), group: project.control } as ISample)">
                                     Sample
                                 </UButton>
                             </div>
 
                             <div class="text-center w-1/3 p-2">
                                 <UFormGroup label="Label for treatment" name="treatment" class="mb-4">
-                                    <UInput v-model="projeto.treatment"
-                                        :disabled="step > 1 || projeto.samples.filter(x => x.group === projeto.treatment).length > 0" />
+                                    <UInput v-model="project.treatment"
+                                        :disabled="project.status !== 2 || project.samples.filter(x => x.group === project.treatment).length > 0" />
                                 </UFormGroup>
 
-                                <div v-for="sample in projeto.samples.filter(x => x.group === projeto.treatment)"
+                                <div v-for="sample in project.samples.filter(x => x.group === project.treatment)"
                                     class="pt-2 mx-4 w-full flex justify-around">
                                     <div class="w-2/3">
-                                        <UInput v-model="sample.acession" :placeholder="sample.name" :disabled="step > 1" />
+                                        <UInput v-model="sample.acession" :placeholder="sample.name"
+                                            :disabled="project.status !== 2" />
                                     </div>
                                     <div class="w-1/3">
-                                        <UButton icon="i-heroicons-x-mark" color="red" variant="soft" :disabled="step > 1"
-                                            @click="projeto.samples = projeto.samples.filter(x => x !== sample)" />
+                                        <UButton icon="i-heroicons-x-mark" color="red" variant="soft"
+                                            v-if="project.status === 2"
+                                            @click="project.samples = project.samples.filter(x => x !== sample)" />
                                     </div>
                                 </div>
                                 <UButton icon="i-heroicons-plus" color="emerald" variant="soft" class="m-6"
-                                    :disabled="step > 1"
-                                    @click="projeto.samples.push({ name: new_smp(projeto.treatment), group: projeto.treatment } as ISample)">
+                                    v-if="project.status === 2"
+                                    @click="project.samples.push({ name: new_smp(project.treatment), group: project.treatment } as ISample)">
                                     Sample
                                 </UButton>
                             </div>
@@ -267,35 +289,35 @@ function baixar() {
 
                         <div class="w-full flex justify-around">
                             <div class="w-1/3 p-2">
-                                <UCheckbox v-model="projeto.fast" name="fast" label="Enable fast mode"
-                                    :disabled="step > 1" />
+                                <UCheckbox v-model="project.fast" name="fast" label="Enable fast mode"
+                                    :disabled="project.status !== 2" />
 
                                 <UFormGroup label="Read length" hint="used in rMATS" class="mt-6">
-                                    <UInput type="number" min="10" max="1000" v-model="projeto.rmats_readLength"
-                                        :disabled="step > 1" />
+                                    <UInput type="number" min="10" max="1000" v-model="project.rmats_readLength"
+                                        :disabled="project.status !== 2" />
                                 </UFormGroup>
                                 <UFormGroup label="PSI" hint="at least to DAS" class="mt-6">
-                                    <UInput type="number" min="0" max="9" step=".0000001" v-model="projeto.psi"
-                                        :disabled="step > 1" />
+                                    <UInput type="number" min="0" max="9" step=".0000001" v-model="project.psi"
+                                        :disabled="project.status !== 2" />
                                 </UFormGroup>
                                 <UFormGroup label="Qvalue" hint="FDR adjusted Pvalue" class="mt-6">
-                                    <UInput type="number" min="0" max="2" step=".0000000000001" v-model="projeto.qvalue"
-                                        :disabled="step > 1" />
+                                    <UInput type="number" min="0" max="2" step=".0000000000001" v-model="project.qvalue"
+                                        :disabled="project.status !== 2" />
                                 </UFormGroup>
                             </div>
                             <div class="text-center w-1/3">
                                 <div class=" border-solid border-2 border-indigo-100 rounded-md p-4">
-                                    <UFormGroup label="CPU" :hint="`${projeto.threads}`">
-                                        <URange :min="1" :max="runtimeConfig.public.CPU" v-model="projeto.threads"
-                                            :disabled="step > 1" />
+                                    <UFormGroup label="CPU" :hint="`${project.threads}`">
+                                        <URange :min="1" :max="runtimeConfig.public.CPU" v-model="project.threads"
+                                            :disabled="project.status !== 2" />
                                     </UFormGroup>
-                                    <UFormGroup label="RAM" :hint="`${projeto.ram}`" class="mt-6">
-                                        <URange :min="1" :max="runtimeConfig.public.RAM" v-model="projeto.ram"
-                                            :disabled="step > 1" />
+                                    <UFormGroup label="RAM" :hint="`${project.ram}`" class="mt-6">
+                                        <URange :min="1" :max="runtimeConfig.public.RAM" v-model="project.ram"
+                                            :disabled="project.status !== 2" />
                                     </UFormGroup>
-                                    <UFormGroup label="Disk" :hint="`${projeto.disk}`" class="mt-6">
-                                        <URange :min="1" :max="runtimeConfig.public.DISK" v-model="projeto.disk"
-                                            :disabled="step > 1" />
+                                    <UFormGroup label="Disk" :hint="`${project.disk}`" class="mt-6">
+                                        <URange :min="1" :max="runtimeConfig.public.DISK" v-model="project.disk"
+                                            :disabled="project.status !== 2" />
                                     </UFormGroup>
                                 </div>
                             </div>
@@ -303,15 +325,16 @@ function baixar() {
 
                         <template #footer>
                             <div class="flex justify-around">
-                                <UButton icon="i-heroicons-trash" color="red" @click="projeto = Projeto.model()"
-                                    :disabled="step > 1">
+                                <UButton icon="i-heroicons-trash" color="red" @click="project = Project.model()"
+                                    :disabled="project.status !== 2">
                                     Clear from
                                 </UButton>
-                                <UButton type="submit" icon="i-heroicons-check" :loading="step == 2" :disabled="step > 1">
+                                <UButton type="submit" icon="i-heroicons-check" :loading="salvando"
+                                    :disabled="project.status !== 2">
                                     Save project
                                 </UButton>
                                 <UButton icon="i-heroicons-bolt" color="emerald" @click="set_example"
-                                    :disabled="step > 1">
+                                    :disabled="project.status !== 2">
                                     Load example
                                 </UButton>
                             </div>
@@ -320,20 +343,24 @@ function baixar() {
                 </UForm>
             </template>
 
-            <template as="div" class="my-2 mx-8" #download>
+            <!-- etapa 3 -->
+            <template #download>
+                <div class="px-8">
+                    <UAlert v-if="project.online" icon="i-heroicons-information-circle" color="sky" variant="subtle"
+                        class="my-6" title="Files will be downloaded from the internet"
+                        description="Please make sure that the file is on an allowed server, the URL is simple, and the file is compressed in the .gz format and extension." />
 
+                    <UAlert v-else icon="i-heroicons-information-circle" color="sky" variant="subtle"
+                        class="my-6" title="Files will be copied from data/projects/inputs to project folder"
+                        description="The system will be copying files from the data/projects/inputs folder to the project folder. Please make sure that each file is in the correct format, not ziped, and has a simple name." />
 
+                    <UButton @click="baixar"
+                    icon="i-heroicons-arrow-down-tray"
+                    >Baixar</UButton>
 
-                <UAlert v-if="projeto.online" icon="i-heroicons-information-circle" color="sky" variant="subtle"
-                    title="Heads up!" description="infor se baixar tem q ser zipado" />
+                    <UMeter icon="i-heroicons-server" size="md" indicator label="CPU Load" :value="75.4" class="mt-6" />
 
-                <UAlert v-if="projeto.online" icon="i-heroicons-information-circle" color="sky" variant="subtle"
-                    title="Heads up!" description="infor se copiar tem q ta na pasta ja descomp" />
-
-                <UButton @click="baixar">Baixar</UButton>
-
-                <UMeter icon="i-heroicons-server" size="md" indicator label="CPU Load" :value="75.4" class="mt-6" />
-
+                </div>
             </template>
         </UAccordion>
     </div>

@@ -1,9 +1,9 @@
-import Model from "./model";
+import Model from "~/utils/model";
 import type { ISample } from "./sample";
 
 const API = '/project'
 
-export interface IProjeto {
+export interface IProject {
 
     id?: number;
     name: string;
@@ -43,9 +43,9 @@ export interface IProjeto {
 
 }
 
-export class Projeto extends Model<IProjeto> {
+export class Project extends Model<IProject> {
 
-    public static api = new Projeto(API);
+    public static api = () => new Project(API);
 
     public static model = () => ({
         name: 'Geneapp Project',
@@ -53,6 +53,6 @@ export class Projeto extends Model<IProjeto> {
         online: true, 
         samples: [] as ISample[],
         threads: 1, ram: 1, disk: 5, psi: .1, qvalue: .05
-    } as IProjeto)
+    } as IProject)
 
 }

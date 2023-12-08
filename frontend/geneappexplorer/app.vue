@@ -1,4 +1,5 @@
 <script setup lang="ts">
+
 const runtimeConfig = useRuntimeConfig()
 
 const paginas = [
@@ -8,6 +9,8 @@ const paginas = [
   { nome: 'GeneappExplorer', href: '/geneappexplorer' },
   { nome: 'About', href: '/about' },
 ]
+
+
 </script>
 
 

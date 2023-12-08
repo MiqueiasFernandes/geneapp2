@@ -13,6 +13,19 @@ class Sample(models.Model):
     def __str__(self):
         return self.name
 
+class Command(models.Model):
+    order= models.PositiveIntegerField(default=1)
+    retry= models.PositiveIntegerField(default=1)
+    src=models.CharField(max_length=999)
+    runnig=models.BooleanField(default=False)
+    success=models.BooleanField()
+    ecode=models.CharField(max_length=10)
+    log=models.CharField(max_length=999, blank=True, null=True)
+    err=models.CharField(max_length=999, blank=True, null=True)
+    project = models.ForeignKey('Project', on_delete=models.CASCADE)
+                                   
+    def __str__(self):
+        return self.src
 
 class Project(models.Model):
 
@@ -39,6 +52,7 @@ class Project(models.Model):
 
     qvalue= models.FloatField(default=.05, validators=[MinValueValidator(0), MaxValueValidator(1)])
     psi= models.FloatField(default=.1, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    rmats_readLength= models.FloatField(default=.1, validators=[MinValueValidator(20), MaxValueValidator(500)])
     
     @property
     def samples(self):

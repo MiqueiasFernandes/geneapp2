@@ -17,7 +17,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             'path', 'organism',  'created_at',  
             'online', 'fast', 'library','status',
             'genome', 'anotattion', 'proteome', 'transcriptome', 
-            'threads', 'ram', 'disk', 'qvalue','psi'
+            'threads', 'ram', 'disk', 'qvalue','psi', 'rmats_readLength'
             ]
         
     def create(self, validated_data):
