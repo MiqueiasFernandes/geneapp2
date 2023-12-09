@@ -1,9 +1,8 @@
-import Model from "../../utils/model";
+import Model, { type IModel } from "../../utils/api";
 
 const API = '/sample'
 
-export interface ISample {
-    id?: number;
+export interface ISample extends IModel{
     name: string;
     group: string;
     acession: string;

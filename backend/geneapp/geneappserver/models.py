@@ -13,19 +13,34 @@ class Sample(models.Model):
     def __str__(self):
         return self.name
 
+
 class Command(models.Model):
-    order= models.PositiveIntegerField(default=1)
-    retry= models.PositiveIntegerField(default=1)
-    src=models.CharField(max_length=999)
-    runnig=models.BooleanField(default=False)
-    success=models.BooleanField()
-    ecode=models.CharField(max_length=10)
+    op=models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(9)])
+    arg1=models.CharField(max_length=200, blank=True, null=True)
+    arg2=models.CharField(max_length=200, blank=True, null=True)
+    arg3=models.CharField(max_length=200, blank=True, null=True)
+    arg4=models.CharField(max_length=200, blank=True, null=True)
+    arg5=models.CharField(max_length=200, blank=True, null=True)
+    arg6=models.CharField(max_length=200, blank=True, null=True)
+    arg7=models.CharField(max_length=200, blank=True, null=True)
+    arg8=models.CharField(max_length=200, blank=True, null=True)
+    arg9=models.CharField(max_length=200, blank=True, null=True)
+    
+    end=models.BooleanField(default=False)
+    status=models.CharField(max_length=100, blank=True, null=True)
+    success=models.BooleanField(default=False)
+    
+    meta=models.CharField(max_length=999, blank=True, null=True)
+    info=models.CharField(max_length=999, blank=True, null=True)
+    out=models.CharField(max_length=999, blank=True, null=True)
     log=models.CharField(max_length=999, blank=True, null=True)
     err=models.CharField(max_length=999, blank=True, null=True)
-    project = models.ForeignKey('Project', on_delete=models.CASCADE)
+    
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, null=True)
                                    
     def __str__(self):
-        return self.src
+        s = 'S' if self.success else 'E' if self.end else 'W'
+        return f"{self.id}[{s}: {self.op} - {self.status} / {self.project} ] {self.arg1} {self.arg2} {self.arg3} {self.arg4} ..."
 
 class Project(models.Model):
 
@@ -57,7 +72,11 @@ class Project(models.Model):
     @property
     def samples(self):
         return Sample.objects.filter(project=self)
+    
+    @property
+    def commands(self):
+        return Command.objects.filter(project=self)
 
     def __str__(self):
-        return self.name
+        return f"[{self.id}] {self.name}: {self.path}"
     

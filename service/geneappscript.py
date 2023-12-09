@@ -44,11 +44,11 @@ def root():
 def server():
     store = 'store is ok.'
     try:
-        if not os.path.isdir(PROJECTS):
+        if not os.path.isdir(INPUTS):
             os.makedirs(INPUTS)
     except:
         store = 'ERROR in store.'
-    return store
+    return {"store": store, "paths": [PROJECTS, INPUTS], "projects": os.listdir(PROJECTS)}
 
 
 ## ## ## PROJECT CONTROL
@@ -59,7 +59,6 @@ def server():
 
 @app.route("/criar_projeto")
 def criar_projeto():
-    server()
     assert len(os.listdir(PROJECTS)) < LIMIT
     id = str(uuid.uuid4())
     local = datetime.today().strftime("%Y-%m-%d")
@@ -68,6 +67,12 @@ def criar_projeto():
     os.makedirs(f"{PROJECTS}/{proj}/jobs")
     os.makedirs(f"{PROJECTS}/{proj}/results")
     return make_job(proj, 0, ["echo", proj])
+
+@app.route("/remover_projeto/<prj>")
+def remove_projeto(prj):
+    assert prj in os.listdir(PROJECTS)
+    shutil.rmtree(f"{PROJECTS}/{prj}")
+    return "ok"
 
 
 ## ## ## JOB CONTROL
@@ -86,6 +91,8 @@ class Job:
         self.args = ["tsp"] + list(map(str,args))
         self.status = 'created'
         self.job = None ### id do tsp
+        self.end = False
+        self.success = False
 
     def run(self):
         """
@@ -107,7 +114,9 @@ class Job:
             "id": self.id, 
             "status": self.status, 
             "job": self.job,
-            "args": str(self.args)
+            "args": str(self.args),
+            "end": self.end,
+            "success": self.success
         }
 
 
@@ -128,8 +137,11 @@ def set_job_status():
     request_data = request.get_json()
     job: Job = jobs[request_data['jobid']]
     output_filename = request_data['output_filename']
-    shutil.copyfile(output_filename, f"{PROJECTS}/{job.prj}/jobs/job.{job.id}.log.txt")
+    logf = f"{PROJECTS}/{job.prj}/jobs/job.{job.id}.log.txt"
+    shutil.copyfile(output_filename, logf)
     job.status = 'finished'
+    job.end = True
+    job.success = open(logf).read().endswith("TERMINADO_COM_SUCESSO\n")
     return VOID
 
 @app.route("/job_status/<int:id>")
@@ -163,37 +175,35 @@ def clean(external, allow=lambda f: any([f.startswith(x) for x in ALLOW])):
     assert allow(external)
     return external
 
-@app.route("/copiar/<proj>/<file>/<out>/<int:id>")
-def copiar(proj, file, out, id):
-    src = clean(file, lambda f: f in os.listdir(f'{INPUTS}'))
-    dst = f"{PROJECTS}/{proj}/inputs/{out}"
-    return make_job(proj, id, [f"{SCRIPTS}/copiar.sh", PROJECTS, id, proj, f"{INPUTS}/{src}", dst])
+@app.route("/show/<proj>/<int:id>/<file>", methods=['POST'])
+def show(proj, id, file): ## salvar texto na pasta results
+    request_data = request.get_json()
+    msg = clean(request_data['msg'], allow=lambda e: True)
+    return make_job(proj, id, [f"{SCRIPTS}/show.sh", PROJECTS, proj, id, file, msg])
 
-@app.route("/baixar/<proj>/<out>/<int:id>", methods=['POST'])
-def baixar(proj, out, id):
+@app.route("/copiar/<proj>/<int:id>/<fin>/<fout>")
+def copiar(proj, id, fin, fout): ## copiar do inputs geral para o inputs do projeto
+    src = clean(fin, lambda f: f in os.listdir(f'{INPUTS}'))
+    dst = clean(fout, lambda _: True)
+    return make_job(proj, id, [f"{SCRIPTS}/copiar.sh", PROJECTS, proj, id, src, dst])
+
+@app.route("/baixar/<proj>/<int:id>/<out>", methods=['POST'])
+def baixar(proj, id, out): ## baixar no inputs do projeto
     request_data = request.get_json()
     url = clean(request_data['url'])
-    dst = f"{PROJECTS}/{proj}/inputs/{out}"
-    return make_job(proj, id, [f"{SCRIPTS}/baixar.sh", PROJECTS, id, proj, url, dst])
+    dst = clean(out, lambda _: True)
+    return make_job(proj, id, [f"{SCRIPTS}/baixar.sh", PROJECTS, proj, id, url, dst])
 
-# @app.route("/baixar_arquivo/<out>", methods=['POST'])
-# def baixar_arquivo(out):
-#     projeto = request.form['projeto']
-#     arquivo = clean(request.form['arquivo'])
-#     fo = f'{LOCAL}/{projeto}/inputs/{out}'
-#     p = Popen(["wget", "-qO", f"{fo}.gz", arquivo], 
-#               stdout=PIPE, stderr=PIPE, user='geneappusr')
-#     output, error = p.communicate()
-#     return {'arquivo': f"{out}.gz", 
-#             'status': p.returncode == 0, 
-#             'log': output.decode('utf-8'), 
-#             'error': error.decode('utf-8')}
+@app.route("/unzip/<proj>/<int:id>/<path>")
+def unzip(proj, id, path): ## abrir aquivo ou pasta da pasta no inputs do projeto
+    src = clean(path, lambda _: True)
+    return make_job(proj, id, [f"{SCRIPTS}/zip.sh", PROJECTS, proj, id, src])
 
-# @app.route("/descomprimir_arquivo/<arquivo>", methods=['POST'])
-# def descomprimir_arquivo(arquivo): ## =======>       arquivo.gz
-#     projeto = request.form['projeto']
-#     p = Popen(["gunzip", f'{LOCAL}/{projeto}/inputs/{arquivo}'])
-#     return {'status': p.returncode == 0} ### false
+@app.route("/zip/<proj>/<int:id>/<path>/<fout>")
+def zip(proj, id, path, fout): ## comprimir aquivo ou pasta da pasta do inputs do projeto
+    src = clean(path, lambda _: True)
+    return make_job(proj, id, [f"{SCRIPTS}/zip.sh", PROJECTS, proj, id, src, 1])
+
 
 
 

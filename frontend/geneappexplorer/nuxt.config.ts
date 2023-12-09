@@ -6,7 +6,9 @@ export default defineNuxtConfig({
     // Generated at build time for SEO purpose
     '/': { prerender: true }
   },
-  modules: ['@nuxt/ui'],
+  modules: [
+    '@nuxt/ui'
+  ],
   runtimeConfig: {
     public: {
       DEV: true,

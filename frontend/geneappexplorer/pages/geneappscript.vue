@@ -1,7 +1,8 @@
 
 <script setup lang="ts">
 import type { FormError, FormSubmitEvent } from '#ui/types'
-import type { IProject, ISample } from '~/composables';
+import { type IProject, type ISample, Command, CMD_Baixar, CMD_Unzip } from '~/composables';
+
 const runtimeConfig = useRuntimeConfig()
 
 const toast = useToast()
@@ -17,6 +18,7 @@ const example: IProject = {
     proteome: "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_protein.faa.gz",
     transcriptome: "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_rna.fna.gz",
     library: LBS[0],
+    threads: 1, ram: 2, disk: 10, fast: false, qvalue: .05, psi: .1,
     samples: [
         { acession: "SRR2513862", name: "ctrl1", group: 'WILD' },
         { acession: "SRR2513863", name: "ctrl2", group: 'WILD' },
@@ -24,16 +26,26 @@ const example: IProject = {
         { acession: "SRR2513867", name: "trt1", group: 'TREATED' },
         { acession: "SRR2513868", name: "trt2", group: 'TREATED' },
         { acession: "SRR2513869", name: "trt3", group: 'TREATED' }],
-    threads: 1, ram: 2, disk: 10, fast: false, qvalue: .05, psi: .1
+    commands: [Command.model(),
+        // {op: 2, status: 'exec', arg1: 'miq.txt', arg2: 'mik.txt'},
+        // {op: 3, status: 'exec', arg1: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_genomic.fna.gz', arg2: 'genomic.fna.gz'},
+        // {op: 4, status: 'exec', arg1: 'genomic.fna.gz'}
+    ]
 }
 const project = reactive(Project.model())
 const load_project = ref()
 const set_example = () => Object.assign(project, example)
 const new_smp = (t: string) => `${t}${project.samples.filter(x => x.group === t).length + 1}`
 const terms = reactive({ a: false, b: false, c: false })
-const projects = await Project.api().list();
+const projects = await Project.api.list();
 const salvando = ref(false)
 const sel = ref(false)
+const stp1_lab = ref("...");
+const stp1_cc = ref(0);
+const isOpen = ref(false)
+const pname = ref();
+const btn_baixar = ref(false);
+const btn_baixar_l = ref(false);
 
 const items = reactive([{
     label: '1. Terms and conditions',
@@ -59,12 +71,25 @@ const items = reactive([{
 
 function set_prj() {
     const s = Object.assign(project, load_project.value).status;
-    terms.a = terms.b = terms.c = true;
-    items[1].disabled = s < 2;
-    items[2].disabled = s < 3;
-    items[3].disabled = s < 4;
-    items[4].disabled = s < 5;
+    terms.a = terms.b = terms.c = true;  ///  1. 
+    items[1].disabled = s < 2;           ///  2.
+    items[2].disabled = s < 3;           ///  3.
+    items[3].disabled = s < 4;           ///  4.
+    items[4].disabled = s < 5;           ///  5.
     sel.value = true;
+
+    if (!items[3].disabled) {
+       // acompanhar(project.commands.filter(c => c.meta === "step4").map(x => x.id), btn_baixar, btn_baixar_l, hab_prc);
+       items[0].defaultOpen = false;
+       items[3].defaultOpen = true;
+       stp1_cc.value = 100;
+        return;
+    }
+
+    if (!items[2].disabled) {
+          acompanhar(project.commands.filter(c => c.meta === "step3").map(x => x.id), btn_baixar, btn_baixar_l, hab_prc);
+    }
+      
 }
 
 const terms_review = () => {
@@ -101,9 +126,10 @@ const validate = (state: any): FormError[] => {
 async function onSubmit(event: FormSubmitEvent<any>) {
     salvando.value = true;
     project.status = 3;
-    Project.api().create(project)
+    Project.api.create(project)
         .then(() => {
             items[2].disabled = !(items[1].disabled = true);
+            btn_baixar.value = true;
             toast.add({
                 id: 'save_prj',
                 title: `Project [${project.id}]: ${project.name} created`,
@@ -125,31 +151,129 @@ async function onSubmit(event: FormSubmitEvent<any>) {
         .finally(() => salvando.value = false)
 }
 
-function baixar() {
-    // apiFetch('/projetos', {
-    //     method: 'PUT',
-    //     body: JSON.stringify(project)
-    // }).then(() => {
-    //     step.value = 3;
-    //     items[2].disabled = !(items[1].disabled = true);
-    //     toast.add({
-    //         id: 'save_prj',
-    //         title: `Project ${project.name} created`,
-    //         description: 'Your project was created now.',
-    //         icon: 'i-heroicons-rocket-launch',
-    //         color: "emerald", timeout: 10000
-    //     })
-    // })
+async function acompanhar(follow: any[], btn1: {value: any}, btn2: {value: any}, hab: () => void) {
+
+    console.log(follow)
+    if (follow.filter(x => x && x > 0).length < 1) {
+        btn1.value = true;
+        return;
+    }
+
+    btn2.value = true;
+    var limit = 3600
+    const parar = setInterval(() => {
+        limit--;
+        Project.api.find(project.id || NaN).then(prj => {
+            const cms = prj.commands.filter(c => follow.includes(c.id))
+            const total = cms.length;
+            const term = cms.reduce((a, b) => a + (b.end ? 1 : 0), 0)
+            stp1_cc.value = term / total * 100;
+            if (stp1_cc.value < 100)
+                stp1_lab.value = cms.filter(x => x.status == "running").map(x => x.info).join(", ") + "...";
+            else
+                stp1_lab.value = 'finished all jobs.';
+            if (total == term || limit < 0) {
+                clearInterval(parar)
+                hab();
+            }
+
+        });
+    }, 1000)
+}
+
+async function baixar() {
+    btn_baixar.value = false;
+    // criar jobs
+    const follow: any[] = [];
+
+    await new CMD_Baixar(project).from(project.anotattion).to('anotattion.gff3.gz').step(3)
+        .enqueue().then(x => follow.push(x.id));
+
+    await new CMD_Unzip(project).file('anotattion.gff3.gz').step(3)
+        .enqueue().then(x => follow.push(x.id));
+
+    await new CMD_Baixar(project).from(project.transcriptome).to('transcriptome.fna.gz').step(3)
+        .enqueue().then(x => follow.push(x.id));
+
+    await new CMD_Unzip(project).file('transcriptome.fna.gz').step(3)
+        .enqueue().then(x => follow.push(x.id));
+
+    await new CMD_Baixar(project).from(project.genome).to('genome.fasta.gz').step(3)
+        .enqueue().then(x => follow.push(x.id));
+
+    await new CMD_Unzip(project).file('genome.fasta.gz').step(3)
+        .enqueue().then(x => follow.push(x.id));
+
+    await new CMD_Baixar(project).from(project.proteome).to('proteome.faa.gz').step(3)
+        .enqueue().then(x => follow.push(x.id));
+
+    await new CMD_Unzip(project).file('proteome.faa.gz').step(3)
+        .enqueue().then(x => follow.push(x.id));
+
+    acompanhar(follow, btn_baixar, btn_baixar_l, hab_prc);
+
+}
+
+function remover() {
+    if (pname.value === project.name) {
+        Project.api.delete(project.id || NaN).then(() => {
+            alert(`Project [${project.id}] "${project.name}" => ${project.path} was permanentmently deleted from server.`)
+            window.location.href = window.location.href;
+        })
+    }
+}
+
+function hab_prc() {
+    btn_baixar.value = btn_baixar_l.value = false;
+
+    project.status = 4;
+    Project.api.update(project).then(prj => {
+        Object.assign(project, prj);
+        items[3].disabled = !(items[4].disabled = true);
+        toast.add({
+            id: 'down_prj',
+            title: `Load files step`,
+            description: `All files are on server folder now.`,
+            icon: 'i-heroicons-arrow-down-on-square-stack',
+            color: "emerald", timeout: 10000
+        })
+    })
 }
 
 </script>
 
 <template>
+    <UModal v-model="isOpen">
+        <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
+            <template #header>
+                <div class="flex items-center justify-between">
+                    <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+                        Remove existing project
+                    </h3>
+                    <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1"
+                        @click="isOpen = false" />
+                </div>
+            </template>
+            <p class="text-slate-600">
+                If you want to remove this project type its name bellow:
+            </p>
+            <p>
+                <UInput placeholder="type here" class="my-2" v-model="pname" />
+            </p>
+            <template #footer>
+                <div class="text-right">
+                    <UButton class="mx-2" color="rose" @click="remover()">Confirm</UButton>
+                    <UButton @click="isOpen = false" color="sky">Cancel</UButton>
+                </div>
+            </template>
+        </UCard>
+    </UModal>
+
     <div v-if="projects.length > 0" class="flex inline mx-32 mt-8">
         <USelectMenu v-model="load_project" :options="projects" class="w-48 mx-2" placeholder="Select an project" searchable
             searchable-placeholder="Search by name or organism" option-attribute="name" by="id" clear-search-on-close
             :search-attributes="['name', 'id', 'organism']" :disabled="sel" />
-        <UButton icon="i-heroicons-arrow-down-on-square-stack" @click="set_prj" :disabled="sel">
+        <UButton icon="i-heroicons-arrow-down-on-square-stack" @click="set_prj" :disabled="sel || !load_project">
             Load project</UButton>
     </div>
 
@@ -325,7 +449,10 @@ function baixar() {
 
                         <template #footer>
                             <div class="flex justify-around">
-                                <UButton icon="i-heroicons-trash" color="red" @click="project = Project.model()"
+                                <UButton v-if="sel" icon="i-heroicons-trash" color="red" @click="isOpen = true">
+                                    Delete project
+                                </UButton>
+                                <UButton v-else icon="i-heroicons-trash" color="red" @click="project = Project.model()"
                                     :disabled="project.status !== 2">
                                     Clear from
                                 </UButton>
@@ -344,21 +471,25 @@ function baixar() {
             </template>
 
             <!-- etapa 3 -->
-            <template #download>
+            <template ref="download" #download>
                 <div class="px-8">
                     <UAlert v-if="project.online" icon="i-heroicons-information-circle" color="sky" variant="subtle"
                         class="my-6" title="Files will be downloaded from the internet"
                         description="Please make sure that the file is on an allowed server, the URL is simple, and the file is compressed in the .gz format and extension." />
 
-                    <UAlert v-else icon="i-heroicons-information-circle" color="sky" variant="subtle"
-                        class="my-6" title="Files will be copied from data/projects/inputs to project folder"
+                    <UAlert v-else icon="i-heroicons-information-circle" color="sky" variant="subtle" class="my-6"
+                        title="Files will be copied from data/projects/inputs to project folder"
                         description="The system will be copying files from the data/projects/inputs folder to the project folder. Please make sure that each file is in the correct format, not ziped, and has a simple name." />
 
-                    <UButton @click="baixar"
-                    icon="i-heroicons-arrow-down-tray"
-                    >Baixar</UButton>
+                    <UButton v-if="project.online" @click="baixar" icon="i-heroicons-arrow-down-tray"
+                        :loading="btn_baixar_l" :disabled="!btn_baixar">Download input files</UButton>
 
-                    <UMeter icon="i-heroicons-server" size="md" indicator label="CPU Load" :value="75.4" class="mt-6" />
+                    <UButton v-else @click="baixar" icon="i-heroicons-arrow-down-tray" :loading="btn_baixar_l"
+                        :disabled="!btn_baixar">
+                        Copy input Files</UButton>
+
+                    <UMeter icon="i-heroicons-server" size="md" indicator :label="stp1_lab" :value="stp1_cc" class="mt-6" />
+
 
                 </div>
             </template>

@@ -4,12 +4,10 @@ from geneappserver import views
 # define the urls
 urlpatterns = [
 
-    path('project', views.projects),
-    path('project/', views.projects),
+    path('project', views.project),
     path('project/<int:pk>', views.project),
 
-    # path('samples', views.sample),
-    # path('samples/', views.sample),
-    # path('samples/<int:pk>', views.sample),
+    path('command', views.command),
+    path('command/<int:pk>', views.command),
 
 ]

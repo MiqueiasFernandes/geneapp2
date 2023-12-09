@@ -1,11 +1,11 @@
-import Model from "~/utils/model";
+import Model, { type IModel } from "~/utils/api";
 import type { ISample } from "./sample";
+import type { ICommand } from "./command";
 
 const API = '/project'
 
-export interface IProject {
+export interface IProject extends IModel {
 
-    id?: number;
     name: string;
     control: string;
     treatment: string;
@@ -19,8 +19,10 @@ export interface IProject {
     anotattion: string;
     proteome: string;
     transcriptome: string;
-    samples: ISample[];
     library: string;
+
+    samples: ISample[];
+    commands: ICommand[];
 
     threads: number;
     ram: number;
@@ -45,13 +47,13 @@ export interface IProject {
 
 export class Project extends Model<IProject> {
 
-    public static api = () => new Project(API);
+    public static api = new Project(API);
 
     public static model = () => ({
         name: 'Geneapp Project',
         control: 'Control', treatment: 'Treatment',
-        online: true, 
-        samples: [] as ISample[],
+        online: true,
+        samples: [] as ISample[], commands: [] as ICommand[],
         threads: 1, ram: 1, disk: 5, psi: .1, qvalue: .05
     } as IProject)
 
