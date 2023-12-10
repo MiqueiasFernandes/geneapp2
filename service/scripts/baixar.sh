@@ -17,5 +17,5 @@ INPUTS=$PROJECTS/$PROJ/inputs
 [ ! $SRA ] && wget -qO $INPUTS/$PARA $URL 1> $LOG 2> $ERR  && echo TERMINADO_COM_SUCESSO
 
 [ $SRA ] && fasterq-dump --split-3 $URL -O $INPUTS -t /tmp/geneappdata/sra 1> $LOG 2> $ERR
-[ $PAIRED ] && mv $INPUTS/$URL.fastq $INPUTS/$PARA.fq && echo TERMINADO_COM_SUCESSO
+[ ! $PAIRED ] && mv $INPUTS/$URL.fastq $INPUTS/$PARA.fq && echo TERMINADO_COM_SUCESSO
 [ $PAIRED ] && mv $INPUTS/$URL\_1.fastq $INPUTS/$PARA.1.fq && mv $INPUTS/$URL\_2.fastq $INPUTS/$PARA.2.fq && echo TERMINADO_COM_SUCESSO

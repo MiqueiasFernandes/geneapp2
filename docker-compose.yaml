@@ -37,7 +37,7 @@ services:
       - nuxt
       - flask
     ports:
-      - 80:8080
+      - 80:80
     restart: always
     volumes:
       - ./data:/tmp/geneappdata
