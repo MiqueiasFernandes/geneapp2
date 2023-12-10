@@ -1,7 +1,7 @@
 
 <script setup lang="ts">
 import type { FormError, FormSubmitEvent } from '#ui/types'
-import { type IProject, type ISample, Command, CMD_Baixar, CMD_Unzip } from '~/composables';
+import { type IProject, type ISample, Command, CMD_Baixar, CMD_Unzip, CMD_Copiar } from '~/composables';
 
 const runtimeConfig = useRuntimeConfig()
 
@@ -42,6 +42,7 @@ const salvando = ref(false)
 const sel = ref(false)
 const stp1_lab = ref("...");
 const stp1_cc = ref(0);
+const zip = ref(true);
 const isOpen = ref(false)
 const pname = ref();
 const btn_baixar = ref(false);
@@ -79,17 +80,17 @@ function set_prj() {
     sel.value = true;
 
     if (!items[3].disabled) {
-       // acompanhar(project.commands.filter(c => c.meta === "step4").map(x => x.id), btn_baixar, btn_baixar_l, hab_prc);
-       items[0].defaultOpen = false;
-       items[3].defaultOpen = true;
-       stp1_cc.value = 100;
+        // acompanhar(project.commands.filter(c => c.meta === "step4").map(x => x.id), btn_baixar, btn_baixar_l, hab_prc);
+        items[0].defaultOpen = false;
+        items[3].defaultOpen = true;
+        stp1_cc.value = 100;
         return;
     }
 
     if (!items[2].disabled) {
-          acompanhar(project.commands.filter(c => c.meta === "step3").map(x => x.id), btn_baixar, btn_baixar_l, hab_prc);
+        acompanhar(project.commands.filter(c => c.meta === "step3").map(x => x.id), btn_baixar, btn_baixar_l, hab_prc);
     }
-      
+
 }
 
 const terms_review = () => {
@@ -128,7 +129,7 @@ async function onSubmit(event: FormSubmitEvent<any>) {
     project.status = 3;
     Project.api.create(project)
         .then(() => {
-            items[2].disabled = !(items[1].disabled = true);
+            items[2].disabled = false;
             btn_baixar.value = true;
             toast.add({
                 id: 'save_prj',
@@ -151,9 +152,17 @@ async function onSubmit(event: FormSubmitEvent<any>) {
         .finally(() => salvando.value = false)
 }
 
-async function acompanhar(follow: any[], btn1: {value: any}, btn2: {value: any}, hab: () => void) {
+function remover() {
+    if (pname.value === project.name) {
+        Project.api.delete(project.id || NaN).then(() => {
+            alert(`Project [${project.id}] "${project.name}" => ${project.path} was permanentmently deleted from server.`)
+            window.location.href = window.location.href;
+        })
+    }
+}
 
-    console.log(follow)
+async function acompanhar(follow: any[], btn1: { value: any }, btn2: { value: any }, hab: () => void) {
+
     if (follow.filter(x => x && x > 0).length < 1) {
         btn1.value = true;
         return;
@@ -181,6 +190,43 @@ async function acompanhar(follow: any[], btn1: {value: any}, btn2: {value: any},
     }, 1000)
 }
 
+async function copiar() {
+    btn_baixar.value = false;
+    // criar jobs
+    const follow: any[] = [];
+
+    await new CMD_Copiar(project).from(project.anotattion).to('anotattion.gff3').step(3)
+        .enqueue().then(x => follow.push(x.id));
+
+    if (zip.value)
+        await new CMD_Unzip(project).file('anotattion.gff3').step(3)
+            .enqueue().then(x => follow.push(x.id));
+
+    await new CMD_Copiar(project).from(project.transcriptome).to('transcriptome.fna').step(3)
+        .enqueue().then(x => follow.push(x.id));
+
+    if (zip.value)
+        await new CMD_Unzip(project).file('transcriptome.fna').step(3)
+            .enqueue().then(x => follow.push(x.id));
+
+    await new CMD_Copiar(project).from(project.genome).to('genome.fasta').step(3)
+        .enqueue().then(x => follow.push(x.id));
+
+    if (zip.value)
+        await new CMD_Unzip(project).file('genome.fasta').step(3)
+            .enqueue().then(x => follow.push(x.id));
+
+    await new CMD_Copiar(project).from(project.proteome).to('proteome.faa').step(3)
+        .enqueue().then(x => follow.push(x.id));
+
+    if (zip.value)
+        await new CMD_Unzip(project).file('proteome.faa').step(3)
+            .enqueue().then(x => follow.push(x.id));
+
+    acompanhar(follow, btn_baixar, btn_baixar_l, hab_prc);
+
+}
+
 async function baixar() {
     btn_baixar.value = false;
     // criar jobs
@@ -189,38 +235,33 @@ async function baixar() {
     await new CMD_Baixar(project).from(project.anotattion).to('anotattion.gff3.gz').step(3)
         .enqueue().then(x => follow.push(x.id));
 
-    await new CMD_Unzip(project).file('anotattion.gff3.gz').step(3)
-        .enqueue().then(x => follow.push(x.id));
+    if (zip.value)
+        await new CMD_Unzip(project).file('anotattion.gff3.gz').step(3)
+            .enqueue().then(x => follow.push(x.id));
 
     await new CMD_Baixar(project).from(project.transcriptome).to('transcriptome.fna.gz').step(3)
         .enqueue().then(x => follow.push(x.id));
 
-    await new CMD_Unzip(project).file('transcriptome.fna.gz').step(3)
-        .enqueue().then(x => follow.push(x.id));
+    if (zip.value)
+        await new CMD_Unzip(project).file('transcriptome.fna.gz').step(3)
+            .enqueue().then(x => follow.push(x.id));
 
     await new CMD_Baixar(project).from(project.genome).to('genome.fasta.gz').step(3)
         .enqueue().then(x => follow.push(x.id));
 
-    await new CMD_Unzip(project).file('genome.fasta.gz').step(3)
-        .enqueue().then(x => follow.push(x.id));
+    if (zip.value)
+        await new CMD_Unzip(project).file('genome.fasta.gz').step(3)
+            .enqueue().then(x => follow.push(x.id));
 
     await new CMD_Baixar(project).from(project.proteome).to('proteome.faa.gz').step(3)
         .enqueue().then(x => follow.push(x.id));
 
-    await new CMD_Unzip(project).file('proteome.faa.gz').step(3)
-        .enqueue().then(x => follow.push(x.id));
+    if (zip.value)
+        await new CMD_Unzip(project).file('proteome.faa.gz').step(3)
+            .enqueue().then(x => follow.push(x.id));
 
     acompanhar(follow, btn_baixar, btn_baixar_l, hab_prc);
 
-}
-
-function remover() {
-    if (pname.value === project.name) {
-        Project.api.delete(project.id || NaN).then(() => {
-            alert(`Project [${project.id}] "${project.name}" => ${project.path} was permanentmently deleted from server.`)
-            window.location.href = window.location.href;
-        })
-    }
 }
 
 function hab_prc() {
@@ -481,10 +522,18 @@ function hab_prc() {
                         title="Files will be copied from data/projects/inputs to project folder"
                         description="The system will be copying files from the data/projects/inputs folder to the project folder. Please make sure that each file is in the correct format, not ziped, and has a simple name." />
 
+                    <UCheckbox v-model="zip" :disabled="!btn_baixar" class="my-4">
+                        <template #label>
+                            <span class="italic">
+                                Files were compressed with <code>zip</code>, <code>gzip</code> or <code>tar.gz</code>
+                            </span>
+                        </template>
+                    </UCheckbox>
+
                     <UButton v-if="project.online" @click="baixar" icon="i-heroicons-arrow-down-tray"
                         :loading="btn_baixar_l" :disabled="!btn_baixar">Download input files</UButton>
 
-                    <UButton v-else @click="baixar" icon="i-heroicons-arrow-down-tray" :loading="btn_baixar_l"
+                    <UButton v-else @click="copiar" icon="i-heroicons-document-duplicate" :loading="btn_baixar_l"
                         :disabled="!btn_baixar">
                         Copy input Files</UButton>
 

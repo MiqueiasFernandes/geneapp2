@@ -79,6 +79,13 @@ class CMD implements ICommand {
 
 }
 
+export class CMD_Copiar extends CMD {
+    op = 2;
+    info = 'Copy inpout file';
+    from(file: string) { this.arg1 = file; return this }
+    to(file: string) { this.info += ' ' + (this.arg2 = file); return this }
+}
+
 export class CMD_Baixar extends CMD {
     op = 3;
     info = 'Download remote file';
