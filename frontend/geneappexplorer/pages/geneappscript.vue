@@ -49,7 +49,7 @@ const btn_baixar_l = ref(false);
 const jobs3 = ref({ total: 0, wait: 0, error: 0, success: 0, ended: 0, info: "" })
 const logs3 = ref("")
 const show_logs = ref(false)
-const dtime = ref(0)
+const dtime = ref("")
 
 const items = reactive([{
     label: '1. Terms and conditions',
@@ -173,46 +173,49 @@ async function acompanhar(follow: any[], btn1: { value: any }, btn2: { value: an
     var limit = 3600
     const parar = setInterval(() => {
         limit--;
-        Project.api.find(project.id || NaN).then(prj => {
+        Project.api.find(project.id || NaN)
+            .then(prj => {
 
-            const cms = prj.commands.filter(c => follow.includes(c.id))
-            const total = cms.length;
-            const term = cms.reduce((a, b) => a + (b.end ? 1 : 0), 0)
-            const ss = cms.reduce((a, b) => a + (b.success ? 1 : 0), 0)
+                const cms = prj.commands.filter(c => follow.includes(c.id))
+                const total = cms.length;
+                const term = cms.reduce((a, b) => a + (b.end ? 1 : 0), 0)
+                const ss = cms.reduce((a, b) => a + (b.success ? 1 : 0), 0)
 
-            if (term < total)
-                jobs3.value.info = cms.filter(x => x.status == "running").map(x => x.info).join(", ") + "...";
-            else
-                jobs3.value.info = 'finished all jobs.';
+                if (term < total)
+                    jobs3.value.info = cms.filter(x => x.status == "running").map(x => x.info).join(", ") + "...";
+                else
+                    jobs3.value.info = 'finished all jobs.';
 
-            jobs3.value.total = total;
-            jobs3.value.ended = term;
-            jobs3.value.wait = total - term;
-            jobs3.value.success = ss;
-            jobs3.value.error = term - ss;
+                jobs3.value.total = total;
+                jobs3.value.ended = term;
+                jobs3.value.wait = total - term;
+                jobs3.value.success = ss;
+                jobs3.value.error = term - ss;
 
-            const f = cms.map(c => new Date(c.created_at || Date.now()).getTime()).sort((a, b) => a - b)[0]
-            const l = total == term ? cms.map(c => new Date(c.ended_at || Date.now()).getTime())
-                .sort((a, b) => a - b)[0] : Date.now();
+                const f = Math.min(...cms.map(c => new Date(c.created_at || Date.now()).getTime()))
+                const l = total == term ? Math.max(...cms.map(c => new Date(c.ended_at || Date.now()).getTime())) : Date.now();
 
+                const dt = l - f;
+                console.log(f, l)
 
-            dtime.value = Math.round((l - f)/60000);
+                const mint = dt > 100000;
+                dtime.value = `${Math.round(dt / (mint ? 60000 : 1000))} ${mint ? 'min' : 's'}.`;
 
-            if (total == term || limit < 0) {
-                clearInterval(parar)
-                hab();
-            }
+                if (total == term || limit < 0) {
+                    clearInterval(parar)
+                    hab();
+                }
 
-            logs3.value = cms.filter(j => j.end && !j.success).map(c => {
-                var l = `Job [${c.id}]: ${c.info}\n`;
-                l += `Status ${c.success ? "OK" : "ERR"}: ${c.status}\n`
-                l += "LOG: \n" + c.log + '\n';
-                l += "OUT: \n" + c.out + '\n';
-                l += "ERR: \n" + c.err + '\n';
-                return l;
-            }).join("\n-------\n\n\n");
+                logs3.value = cms.filter(j => j.end && !j.success).map(c => {
+                    var l = `Job [${c.id}]: ${c.info}\n`;
+                    l += `Status ${c.success ? "OK" : "ERR"}: ${c.status}\n`
+                    l += "LOG: \n" + c.log + '\n';
+                    l += "OUT: \n" + c.out + '\n';
+                    l += "ERR: \n" + c.err + '\n';
+                    return l;
+                }).join("\n-------\n\n\n");
 
-        });
+            }).catch(_ => alert("Invalid project") + (window.location.href = window.location.href));
     }, 1000)
 }
 
@@ -581,8 +584,7 @@ async function process() {
                         <template #indicator>
                             <div class="flex gap-1.5 justify-between text-sm">
                                 <p>
-                                    <UBadge color="sky" variant="subtle" class="mr-2">{{ dtime }} min.</UBadge> {{
-                                        jobs3.info }}
+                                    <UBadge color="sky" variant="subtle" class="mr-2">{{ dtime }}</UBadge> {{ jobs3.info }}
                                 </p>
                                 <p class="text-gray-500 dark:text-gray-400">
                                     {{ jobs3.ended }} of {{ jobs3.total }}
