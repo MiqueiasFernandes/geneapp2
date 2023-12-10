@@ -17,21 +17,17 @@ const example: IProject = {
     anotattion: "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_genomic.gff.gz",
     proteome: "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_protein.faa.gz",
     transcriptome: "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_rna.fna.gz",
-    library: LBS[0],
+    library: LBS[1],
     threads: 1, ram: 2, disk: 10, fast: false, qvalue: .05, psi: .1,
     samples: [
-        { acession: "SRR24554715", name: "ctrl1", group: 'WILD' }, ////SRR2513862
-        // { acession: "SRR2513863", name: "ctrl2", group: 'WILD' },
-        // { acession: "SRR2513864", name: "ctrl3", group: 'WILD' },
-        // { acession: "SRR2513867", name: "trt1", group: 'TREATED' },
-        // { acession: "SRR2513868", name: "trt2", group: 'TREATED' },
-        // { acession: "SRR2513869", name: "trt3", group: 'TREATED' }
+        { acession: "SRR2513862", name: "ctrl1", group: 'WILD' },
+        { acession: "SRR2513863", name: "ctrl2", group: 'WILD' },
+        { acession: "SRR2513864", name: "ctrl3", group: 'WILD' },
+        { acession: "SRR2513867", name: "trt1", group: 'TREATED' },
+        { acession: "SRR2513868", name: "trt2", group: 'TREATED' },
+        { acession: "SRR2513869", name: "trt3", group: 'TREATED' }
     ],
-    commands: [Command.model(),
-        // {op: 2, status: 'exec', arg1: 'miq.txt', arg2: 'mik.txt'},
-        // {op: 3, status: 'exec', arg1: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_genomic.fna.gz', arg2: 'genomic.fna.gz'},
-        // {op: 4, status: 'exec', arg1: 'genomic.fna.gz'}
-    ]
+    commands: [Command.model()]
 }
 const project = reactive(Project.model())
 const load_project = ref()
@@ -194,10 +190,7 @@ async function acompanhar(follow: any[], btn1: { value: any }, btn2: { value: an
 
                 const f = Math.min(...cms.map(c => new Date(c.created_at || Date.now()).getTime()))
                 const l = total == term ? Math.max(...cms.map(c => new Date(c.ended_at || Date.now()).getTime())) : Date.now();
-
                 const dt = l - f;
-                console.log(f, l)
-
                 const mint = dt > 100000;
                 dtime.value = `${Math.round(dt / (mint ? 60000 : 1000))} ${mint ? 'min' : 's'}.`;
 
@@ -254,7 +247,7 @@ async function copiar() {
 
     project.samples.forEach(sample => new CMD_Copiar(project)
         .from(sample.acession)
-        .to(sample.name)._info(`Copy sample ${sample.acession} to ${sample.name}...`)
+        .to(sample.name)
         .step(3).enqueue().then(x => follow.push(x.id)))
 
     acompanhar(follow, btn_baixar, btn_baixar_l, hab_prc);
@@ -359,10 +352,17 @@ async function process() {
             :search-attributes="['name', 'id', 'organism']" :disabled="sel" />
         <UButton icon="i-heroicons-arrow-down-on-square-stack" @click="set_prj" :disabled="sel || !load_project">
             Load project</UButton>
+        <UButton icon="i-heroicons-arrow-top-right-on-square" class="mx-2"  
+        :to="`projects/${project.path}/results`" target="_blank"
+        v-if="project.path">
+            Go to project</UButton>
     </div>
+    <p class="text-gray font-mono text-sm pt-4 text-slate-300 text-center">
+        {{ project.path }}
+    </p>
 
     <div class="flex justify-center">
-        <UAccordion :items="items" class="p-4 mx-12 mt-8 bg-white rounded-lg max-w-4xl">
+        <UAccordion :items="items" class="p-4 mx-12 mt-6 bg-white rounded-lg max-w-4xl">
 
             <!-- etapa 1 -->
             <template #terms>
