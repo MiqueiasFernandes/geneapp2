@@ -187,22 +187,35 @@ def copiar(proj, id, fin, fout): ## copiar do inputs geral para o inputs do proj
     dst = clean(fout, lambda _: True)
     return make_job(proj, id, [f"{SCRIPTS}/copiar.sh", PROJECTS, proj, id, src, dst])
 
-@app.route("/baixar/<proj>/<int:id>/<out>", methods=['POST'])
-def baixar(proj, id, out): ## baixar no inputs do projeto
+@app.route("/baixar/<proj>/<int:id>/<out>/<int:sra>/<int:paired>", methods=['POST'])
+def baixar(proj, id, out, sra, paired): ## baixar no inputs do projeto
     request_data = request.get_json()
-    url = clean(request_data['url'])
+    url = clean(request_data['url'], lambda _: True) if sra == 1 else clean(request_data['url'])
     dst = clean(out, lambda _: True)
-    return make_job(proj, id, [f"{SCRIPTS}/baixar.sh", PROJECTS, proj, id, url, dst])
+    args = [f"{SCRIPTS}/baixar.sh", PROJECTS, proj, id, url, dst]
+    if sra == 1:
+        args.append("1")
+        if paired == 1:
+            args.append("1")
+    return make_job(proj, id, args)
 
 @app.route("/unzip/<proj>/<int:id>/<path>")
 def unzip(proj, id, path): ## abrir aquivo ou pasta da pasta no inputs do projeto
     src = clean(path, lambda _: True)
     return make_job(proj, id, [f"{SCRIPTS}/zip.sh", PROJECTS, proj, id, src])
 
-@app.route("/zip/<proj>/<int:id>/<path>/<fout>")
-def zip(proj, id, path, fout): ## comprimir aquivo ou pasta da pasta do inputs do projeto
+@app.route("/zip/<proj>/<int:id>/<path>")
+def zip(proj, id, path): ## comprimir aquivo ou pasta da pasta do inputs do projeto
     src = clean(path, lambda _: True)
     return make_job(proj, id, [f"{SCRIPTS}/zip.sh", PROJECTS, proj, id, src, 1])
+
+@app.route("/qinput/<proj>/<int:id>/<fg>/<fa>/<ft>/<fp>")
+def qinput(proj, id, fg, fa, ft, fp): ## comprimir aquivo ou pasta da pasta do inputs do projeto
+    fg = clean(fg, lambda f: f in os.listdir(f'{INPUTS}'))
+    fa = clean(fa, lambda f: f in os.listdir(f'{INPUTS}'))
+    ft = clean(ft, lambda f: f in os.listdir(f'{INPUTS}'))
+    fp = clean(fp, lambda f: f in os.listdir(f'{INPUTS}'))
+    return make_job(proj, id, [f"{SCRIPTS}/qinput.py", PROJECTS, proj, id, fg, fa, fp, ft])
 
 
 

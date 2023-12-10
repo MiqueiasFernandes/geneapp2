@@ -16,8 +16,8 @@ cd $PROJECTS/$PROJ
 ## decompress
 [ ! $M ] && cd inputs
 [ ! $M ] && tar -tf $X && echo UNTARGZ && HANDLE=1 && tar -xvf $X 1> $LOG 2> $ERR
-[ ! $M ] && [ ! $HANDLE ] && gzip -t $X && echo GUNZIP && HANDLE=1 && gunzip $X 1> $LOG 2> $ERR
-[ ! $M ] && [ ! $HANDLE ] && zip -t $X && echo UNZIP && HANDLE=1 && unzip $X 1> $LOG 2> $ERR
+[ ! $M ] && [ ! $HANDLE ] && gzip -t $X && echo GUNZIP && HANDLE=1 && gunzip $X 1> $LOG 2> $ERR ### not working for local
+[ ! $M ] && [ ! $HANDLE ] && zip -t $X && echo UNZIP && HANDLE=1 && unzip $X 1> $LOG 2> $ERR    ### not working
 
 ## compress
 [ $M ] && [ -f $X ] || [ -d $X ] && echo TAR && HANDLE=1 && tar -cvf $X.tar.gz $X 1> $LOG 2> $ERR && cp $X.tar.gz results

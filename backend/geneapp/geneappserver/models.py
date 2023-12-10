@@ -15,6 +15,9 @@ class Sample(models.Model):
 
 
 class Command(models.Model):
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    ended_at = models.DateTimeField(auto_now_add=True)
     op=models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(9)])
     arg1=models.CharField(max_length=200, blank=True, null=True)
     arg2=models.CharField(max_length=200, blank=True, null=True)

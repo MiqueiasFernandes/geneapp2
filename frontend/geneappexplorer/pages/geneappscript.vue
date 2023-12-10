@@ -1,7 +1,7 @@
 
 <script setup lang="ts">
 import type { FormError, FormSubmitEvent } from '#ui/types'
-import { type IProject, type ISample, Command, CMD_Baixar, CMD_Unzip, CMD_Copiar } from '~/composables';
+import { type IProject, type ISample, Command, CMD_Baixar, CMD_Unzip, CMD_Copiar, CMD_Qinput } from '~/composables';
 
 const runtimeConfig = useRuntimeConfig()
 
@@ -20,12 +20,13 @@ const example: IProject = {
     library: LBS[0],
     threads: 1, ram: 2, disk: 10, fast: false, qvalue: .05, psi: .1,
     samples: [
-        { acession: "SRR2513862", name: "ctrl1", group: 'WILD' },
-        { acession: "SRR2513863", name: "ctrl2", group: 'WILD' },
-        { acession: "SRR2513864", name: "ctrl3", group: 'WILD' },
-        { acession: "SRR2513867", name: "trt1", group: 'TREATED' },
-        { acession: "SRR2513868", name: "trt2", group: 'TREATED' },
-        { acession: "SRR2513869", name: "trt3", group: 'TREATED' }],
+        { acession: "SRR24554715", name: "ctrl1", group: 'WILD' }, ////SRR2513862
+        // { acession: "SRR2513863", name: "ctrl2", group: 'WILD' },
+        // { acession: "SRR2513864", name: "ctrl3", group: 'WILD' },
+        // { acession: "SRR2513867", name: "trt1", group: 'TREATED' },
+        // { acession: "SRR2513868", name: "trt2", group: 'TREATED' },
+        // { acession: "SRR2513869", name: "trt3", group: 'TREATED' }
+    ],
     commands: [Command.model(),
         // {op: 2, status: 'exec', arg1: 'miq.txt', arg2: 'mik.txt'},
         // {op: 3, status: 'exec', arg1: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_genomic.fna.gz', arg2: 'genomic.fna.gz'},
@@ -40,13 +41,15 @@ const terms = reactive({ a: false, b: false, c: false })
 const projects = await Project.api.list();
 const salvando = ref(false)
 const sel = ref(false)
-const stp1_lab = ref("...");
-const stp1_cc = ref(0);
 const zip = ref(true);
 const isOpen = ref(false)
 const pname = ref();
 const btn_baixar = ref(false);
 const btn_baixar_l = ref(false);
+const jobs3 = ref({ total: 0, wait: 0, error: 0, success: 0, ended: 0, info: "" })
+const logs3 = ref("")
+const show_logs = ref(false)
+const dtime = ref(0)
 
 const items = reactive([{
     label: '1. Terms and conditions',
@@ -81,10 +84,8 @@ function set_prj() {
 
     if (!items[3].disabled) {
         // acompanhar(project.commands.filter(c => c.meta === "step4").map(x => x.id), btn_baixar, btn_baixar_l, hab_prc);
-        items[0].defaultOpen = false;
-        items[3].defaultOpen = true;
-        stp1_cc.value = 100;
-        return;
+        // stp1_cc.value = 100;
+        //return;
     }
 
     if (!items[2].disabled) {
@@ -173,18 +174,43 @@ async function acompanhar(follow: any[], btn1: { value: any }, btn2: { value: an
     const parar = setInterval(() => {
         limit--;
         Project.api.find(project.id || NaN).then(prj => {
+
             const cms = prj.commands.filter(c => follow.includes(c.id))
             const total = cms.length;
             const term = cms.reduce((a, b) => a + (b.end ? 1 : 0), 0)
-            stp1_cc.value = term / total * 100;
-            if (stp1_cc.value < 100)
-                stp1_lab.value = cms.filter(x => x.status == "running").map(x => x.info).join(", ") + "...";
+            const ss = cms.reduce((a, b) => a + (b.success ? 1 : 0), 0)
+
+            if (term < total)
+                jobs3.value.info = cms.filter(x => x.status == "running").map(x => x.info).join(", ") + "...";
             else
-                stp1_lab.value = 'finished all jobs.';
+                jobs3.value.info = 'finished all jobs.';
+
+            jobs3.value.total = total;
+            jobs3.value.ended = term;
+            jobs3.value.wait = total - term;
+            jobs3.value.success = ss;
+            jobs3.value.error = term - ss;
+
+            const f = cms.map(c => new Date(c.created_at || Date.now()).getTime()).sort((a, b) => a - b)[0]
+            const l = total == term ? cms.map(c => new Date(c.ended_at || Date.now()).getTime())
+                .sort((a, b) => a - b)[0] : Date.now();
+
+
+            dtime.value = Math.round((l - f)/60000);
+
             if (total == term || limit < 0) {
                 clearInterval(parar)
                 hab();
             }
+
+            logs3.value = cms.filter(j => j.end && !j.success).map(c => {
+                var l = `Job [${c.id}]: ${c.info}\n`;
+                l += `Status ${c.success ? "OK" : "ERR"}: ${c.status}\n`
+                l += "LOG: \n" + c.log + '\n';
+                l += "OUT: \n" + c.out + '\n';
+                l += "ERR: \n" + c.err + '\n';
+                return l;
+            }).join("\n-------\n\n\n");
 
         });
     }, 1000)
@@ -223,6 +249,11 @@ async function copiar() {
         await new CMD_Unzip(project).file('proteome.faa').step(3)
             .enqueue().then(x => follow.push(x.id));
 
+    project.samples.forEach(sample => new CMD_Copiar(project)
+        .from(sample.acession)
+        .to(sample.name)._info(`Copy sample ${sample.acession} to ${sample.name}...`)
+        .step(3).enqueue().then(x => follow.push(x.id)))
+
     acompanhar(follow, btn_baixar, btn_baixar_l, hab_prc);
 
 }
@@ -260,6 +291,12 @@ async function baixar() {
         await new CMD_Unzip(project).file('proteome.faa.gz').step(3)
             .enqueue().then(x => follow.push(x.id));
 
+    project.samples.forEach(async sample => await new CMD_Baixar(project)
+        .from(sample.acession)
+        .to(sample.name)
+        .sra()
+        .step(3).enqueue().then(x => follow.push(x.id)))
+
     acompanhar(follow, btn_baixar, btn_baixar_l, hab_prc);
 
 }
@@ -281,8 +318,11 @@ function hab_prc() {
     })
 }
 
-</script>
+async function process() {
+    await new CMD_Qinput(project).fill().step(4).enqueue();
+}
 
+</script>
 <template>
     <UModal v-model="isOpen">
         <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
@@ -512,7 +552,7 @@ function hab_prc() {
             </template>
 
             <!-- etapa 3 -->
-            <template ref="download" #download>
+            <template #download>
                 <div class="px-8">
                     <UAlert v-if="project.online" icon="i-heroicons-information-circle" color="sky" variant="subtle"
                         class="my-6" title="Files will be downloaded from the internet"
@@ -530,17 +570,49 @@ function hab_prc() {
                         </template>
                     </UCheckbox>
 
-                    <UButton v-if="project.online" @click="baixar" icon="i-heroicons-arrow-down-tray"
+                    <UButton v-if="project.online" @click="baixar" icon="i-heroicons-arrow-down-tray" class="my-4"
                         :loading="btn_baixar_l" :disabled="!btn_baixar">Download input files</UButton>
 
                     <UButton v-else @click="copiar" icon="i-heroicons-document-duplicate" :loading="btn_baixar_l"
-                        :disabled="!btn_baixar">
+                        :disabled="!btn_baixar" class="my-4">
                         Copy input Files</UButton>
 
-                    <UMeter icon="i-heroicons-server" size="md" indicator :label="stp1_lab" :value="stp1_cc" class="mt-6" />
+                    <UMeterGroup :max="jobs3.total" size="md" class="my-4" v-if="jobs3.total > 0">
+                        <template #indicator>
+                            <div class="flex gap-1.5 justify-between text-sm">
+                                <p>
+                                    <UBadge color="sky" variant="subtle" class="mr-2">{{ dtime }} min.</UBadge> {{
+                                        jobs3.info }}
+                                </p>
+                                <p class="text-gray-500 dark:text-gray-400">
+                                    {{ jobs3.ended }} of {{ jobs3.total }}
+                                </p>
+                            </div>
+                        </template>
+
+                        <UMeter :value="jobs3.success" color="green" label="Sucess" icon="i-heroicons-check" />
+                        <UMeter :value="jobs3.error" color="rose" label="Some Error"
+                            icon="i-heroicons-exclamation-triangle" />
+                        <UMeter :value="jobs3.wait" color="gray" label="Waiting" icon="i-heroicons-clock" />
+                    </UMeterGroup>
+
+
+
+                    <UButton v-if="logs3 !== ''" @click="show_logs = !show_logs" icon="i-heroicons-eye" class="my-4">Show
+                        logs</UButton>
+
+                    <UTextarea v-if="show_logs" disabled resize color="rose" variant="outline" v-model="logs3" :rows="10"
+                        size="md" />
+
 
 
                 </div>
+            </template>
+
+
+            <!-- etapa 4 -->
+            <template #process>
+                <UButton @click="process">proces</UButton>
             </template>
         </UAccordion>
     </div>

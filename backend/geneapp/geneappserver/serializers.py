@@ -12,7 +12,8 @@ class CommandSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Command
-        fields = ['id', 'project_id', 'op', 'status', 'success', 'end', 'log', 'err', 'out', 'info', 'meta',
+        fields = ['id', 'project_id', 'op', 'status', 'success', 'end', 'log', 'err', 'out', 
+                  'info', 'meta', 'created_at', 'ended_at',
                   'arg1', 'arg2', 'arg3', 'arg4', 'arg5', 'arg6', 'arg7', 'arg8', 'arg9']
 
     def create(self, validated_data):

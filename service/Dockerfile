@@ -2,13 +2,13 @@ FROM debian:bookworm
 
 WORKDIR /app
 COPY requirements.txt geneappservice.sh geneappscript.py /app/
-RUN apt update -y && apt install -y python3-pip python3-venv task-spooler wget curl zip unzip
+RUN apt update -y && apt install -y python3-pip python3-venv task-spooler wget curl zip unzip sra-toolkit
 RUN python3 -m venv /app/flask_env
 RUN . /app/flask_env/bin/activate && pip install -r requirements.txt --no-cache-dir
 ENV PATH="/app/flask_env/bin:$PATH"
 
 COPY scripts /app/scripts
-RUN chmod +x /app/geneappservice.sh /app/scripts/*.sh
+RUN chmod +x /app/geneappservice.sh /app/scripts/*.sh /app/scripts/*.py
 ENV TS_ONFINISH=/app/geneappservice.sh
 ENV TS_SLOTS=1
 #ENV TMPDIR=/tmp/geneappdata/jobs

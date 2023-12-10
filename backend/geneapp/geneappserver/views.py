@@ -8,6 +8,7 @@ from django.http import HttpResponse, JsonResponse
 from .serializers import ProjectSerializer, SampleSerializer, CommandSerializer
 from .models import  Project, Sample, Command
 from .geneappscript import *
+from datetime import datetime
 
 class CRUD:
     def __init__(self, klass, serializer) -> None:
@@ -79,9 +80,12 @@ def project(request, pk = None):
                 obj.save()
 
             for command in obj.commands:
-                a, b = process(command)
-                if a:
-                    b.save()
+                try:
+                    a, b = process(command)
+                    if a:
+                        b.save()
+                except:
+                    print("ERROR JOB", command)
 
             json = crud_projetos.seralizer(obj).data
 
@@ -117,33 +121,63 @@ def process(command: Command):
     ## comando criado
     if command.status == 'exec':
         command.status = f'Nsubmetido'
-
+        error = False
         if command.op == 1:
             if job_show(command.project.path, command.id, command.arg1, command.arg2):
                 command.status = 'submetido'
+            else:
+                error = True
 
         elif command.op == 2:
             if job_copiar(command.project.path, command.id, command.arg1, command.arg2):
                 command.status = 'submetido'
+            else:
+                error = True
 
         elif command.op == 3:
-            if job_baixar(command.project.path, command.id, command.arg1, command.arg2):
+            if job_baixar(command.project.path, command.id, 
+                          command.arg1, command.arg2, command.arg3, command.project.library == "SHORT_PAIRED"):
                 command.status = 'submetido'
+            else:
+                error = True
 
         elif command.op == 4:
             if job_unzip(command.project.path, command.id, command.arg1):
                 command.status = 'submetido'
+            else:
+                error = True
+
+        elif command.op == 5:
+            if job_qinput(command.project.path, command.id, command.arg1, command.arg2, command.arg3, command.arg4):
+                command.status = 'submetido'
+            else:
+                error = True
 
         else:
             command.status = f'errorOP[{command.op}]'
+
+        if error:
+            command.status = "Finished"
+            command.end = True
+            command.err = "Error when submit job to service"
+            command.success = False
+
     elif not command.status is None:
-        job = job_status(command.id)
-        command.status = job['status']
-        command.end = job['end']
-        command.success = job['success']
-        if command.end:
-            command.log, command.out, command.err = get_logs(command.project.path, command.id)  
+        try:
+            job = job_status(command.id)
+            command.status = job['status']
+            command.end = job['end']
+            command.success = job['success']
+            if command.end:
+                command.log, command.out, command.err = get_logs(command.project.path, command.id) 
+        except:
+            command.status = 'unknown'
+            command.err = 'Unknown error'
+            command.end = True
+            command.success = False
     
+    if command.end:
+        command.ended_at = datetime.now()
     return True, command
 
 
