@@ -46,7 +46,7 @@ class Command(models.Model):
                                    
     def __str__(self):
         s = 'S' if self.success else 'E' if self.end else 'W'
-        return f"{self.id}[{s}: {self.op} - {self.status} / {self.project} ] {self.arg1} {self.arg2} {self.arg3} {self.arg4} ..."
+        return f"{self.id}|{self.tsp}[{s}: {self.op} - {self.status} / {self.project} ] {self.arg1} {self.arg2} {self.arg3} {self.arg4} ..."
 
 class Project(models.Model):
 

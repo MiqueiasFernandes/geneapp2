@@ -8,7 +8,15 @@ from django.http import HttpResponse, JsonResponse
 from .serializers import ProjectSerializer, SampleSerializer, CommandSerializer
 from .models import  Project, Sample, Command
 from .geneappscript import *
-from datetime import datetime
+
+from .cmd_handler.CMD01Show import CMD01Show
+from .cmd_handler.CMD02Copy import CMD02Copy
+from .cmd_handler.CMD03Download import CMD03Download
+from .cmd_handler.CMD04Unzip import CMD04Unzip
+from .cmd_handler.CMD05Qinput import CMD05Qinput
+from .cmd_handler.CMD06Splitx import CMD06Splitx
+from .cmd_handler.CMD07Joinx import CMD07Joinx
+from .cmd_handler.CMD08Holder import CMD08Holder
 
 class CRUD:
     def __init__(self, klass, serializer) -> None:
@@ -63,7 +71,6 @@ class CRUD:
 
         return HttpResponse(status=400), None
 
-
 crud_projetos = CRUD(Project, ProjectSerializer)
 
 @csrf_exempt ## ENDPOINT EXTERNAL OPEN
@@ -74,11 +81,12 @@ def project(request, pk = None):
             if not rm_proj(obj.path):
                 print("ERROR RM PRJ", obj)
             return response
-        try:
-            if pk is None: ## POST
-                obj.path = str(criar_proj())
-                obj.save()
+     
+        if pk is None: ## POST
+            obj.path = str(criar_proj())
+            obj.save()
 
+        if obj.path:
             for command in obj.commands:
                 try:
                     a, b = process(command)
@@ -93,9 +101,9 @@ def project(request, pk = None):
                 write_data(obj.path, "geneapp.txt", str(json))
 
             return JsonResponse(json, safe=False)
-        except:
+        else:
             obj.delete()
-            rm_proj(obj.path)
+            if obj.path: rm_proj(obj.path)
             return HttpResponse(status=507)
 
     return response
@@ -109,90 +117,34 @@ def sample(request, pk = None):
     response, _ = crud_samples.handle(request, pk)
     return response
 
+handlers = [CMD01Show(), CMD02Copy(), CMD03Download(), CMD04Unzip(), 
+            CMD05Qinput(), CMD06Splitx(), CMD07Joinx(), CMD08Holder()]
 
 crud_commands = CRUD(Command, CommandSerializer)
 
 def process(command: Command):
-
+    
     ## draft ou terminou
     if command.project is None or command.end:
         return False, command
     
+    
     ## comando criado
     if command.status == 'exec':
         command.status = f'Nsubmetido'
-        error = False
-        if command.op == 1:
-            command.tsp = job_show(command.project.path, command.id, command.arg1, command.arg2)
-            if command.tsp > 0:
-                command.status = 'submetido'
-            else:
-                error = True
+       
+        for handler in handlers:
+            handled = handler.handle(command)
+            if handled:
+                break
 
-        elif command.op == 2:
-            command.tsp = job_copiar(command.project.path, command.id, command.arg1, command.arg2)
-            if command.tsp > 0:
-                command.status = 'submetido'
-            else:
-                error = True
-
-        elif command.op == 3:
-            command.tsp = job_baixar(command.project.path, command.id, 
-                          command.arg1, command.arg2, command.arg3, command.project.library == "SHORT_PAIRED")
-            if command.tsp > 0:
-                command.status = 'submetido'
-            else:
-                error = True
-
-        elif command.op == 4:
-            command.tsp = job_unzip(command.project.path, command.id, command.arg1, command.lock)
-            if command.tsp > 0:
-                command.status = 'submetido'
-            else:
-                error = True
-
-        elif command.op == 5:
-            command.tsp = job_qinput(command.project.path, command.id, command.arg1, command.arg2, command.arg3, command.arg4, command.lock)
-            if command.tsp > 0:
-                command.status = 'submetido'
-            else:
-                error = True
-
-        elif command.op == 6:
-            command.tsp = job_splitx(command.project.path, command.id, command.arg1, command.arg2)
-            if command.tsp > 0:
-                command.status = 'submetido'
-            else:
-                error = True
-
-        elif command.op == 7:
-            command.tsp = job_joinx(command.project.path, command.id, command.arg1, command.arg2, command.lock)
-            if command.tsp > 0:
-                command.status = 'submetido'
-            else:
-                error = True
-
-        elif command.op == 8:
-            def to_int(x):
-                return 0 if x is None else int(x)
-            command.tsp = job_holder(command.project.path, command.id, 
-                                     to_int(command.arg1), to_int(command.arg2), to_int(command.arg3), 
-                                     to_int(command.arg4), to_int(command.arg5), to_int(command.arg6))
-            if command.tsp > 0:
-                command.status = 'submetido'
-            else:
-                error = True
-
-        else:
-            command.status = f'errorOP[{command.op}]'
-
-        if error:
+        if not handled:
             command.status = "Finished"
             command.end = True
-            command.err = "Error when submit job to service"
+            command.err = "Error when submit job to service. No has handler."
             command.success = False
 
-    elif not command.status is None:
+    elif not command.status is None: ## comando criado sem pedir para exec
         try:
             job = job_status(command.id)
             command.status = job['status']
@@ -208,7 +160,6 @@ def process(command: Command):
             command.success = False
    
     return True, command
-
 
 @csrf_exempt ## ENDPOINT EXTERNAL OPEN
 def command(request, pk = None):
