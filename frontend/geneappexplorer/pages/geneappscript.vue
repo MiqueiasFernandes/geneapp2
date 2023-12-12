@@ -1,13 +1,13 @@
 
 <script setup lang="ts">
 import type { FormError, FormSubmitEvent } from '#ui/types'
-import { type IProject, type ISample, Command, CMD_Baixar, CMD_Unzip, CMD_Copiar, CMD_Qinput } from '~/composables';
+import { type IProject, type ISample, Command, CMD_Baixar, CMD_Unzip, CMD_Copiar, CMD_Qinput, CMD_Splitx } from '~/composables';
 
 const runtimeConfig = useRuntimeConfig()
 
 const toast = useToast()
 const LBS = ['SHORT_PAIRED', 'SHORT_SINGLE', 'LONG_SINGLE']
-const example: IProject = {
+const example_fung: IProject = {
     name: "Project EXPPATOG",
     control: "WILD",
     treatment: "TREATED",
@@ -20,18 +20,38 @@ const example: IProject = {
     library: LBS[1],
     threads: 1, ram: 2, disk: 10, fast: false, qvalue: .05, psi: .1,
     samples: [
-        { acession: "SRR2513862", name: "ctrl1", group: 'WILD' },
-        { acession: "SRR2513863", name: "ctrl2", group: 'WILD' },
-        { acession: "SRR2513864", name: "ctrl3", group: 'WILD' },
-        { acession: "SRR2513867", name: "trt1", group: 'TREATED' },
-        { acession: "SRR2513868", name: "trt2", group: 'TREATED' },
-        { acession: "SRR2513869", name: "trt3", group: 'TREATED' }
+        // { acession: "SRR2513862", name: "ctrl1", group: 'WILD' },
+        // { acession: "SRR2513863", name: "ctrl2", group: 'WILD' },
+        // { acession: "SRR2513864", name: "ctrl3", group: 'WILD' },
+        // { acession: "SRR2513867", name: "trt1", group: 'TREATED' },
+        // { acession: "SRR2513868", name: "trt2", group: 'TREATED' },
+        // { acession: "SRR2513869", name: "trt3", group: 'TREATED' }
     ],
     commands: [Command.model()]
 }
+
+const example_arab: IProject = Object.assign(Object.assign({}, example_fung), {
+    name: "Project Arab", organism: "Arabidopsis",
+    genome: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/735/GCF_000001735.4_TAIR10.1/GCF_000001735.4_TAIR10.1_genomic.fna.gz',
+    anotattion: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/735/GCF_000001735.4_TAIR10.1/GCF_000001735.4_TAIR10.1_genomic.gff.gz',
+    proteome: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/735/GCF_000001735.4_TAIR10.1/GCF_000001735.4_TAIR10.1_protein.faa.gz',
+    transcriptome: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/735/GCF_000001735.4_TAIR10.1/GCF_000001735.4_TAIR10.1_rna.fna.gz',
+    samples: []
+})
+
+const example_hm: IProject = Object.assign(Object.assign({}, example_fung), {
+    name: "Project Human", organism: "Humano",
+    genome: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_genomic.fna.gz',
+    anotattion: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_genomic.gff.gz',
+    proteome: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_protein.faa.gz',
+    transcriptome: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_rna.fna.gz',
+    samples: []
+})
+
+
 const project = reactive(Project.model())
 const load_project = ref()
-const set_example = () => Object.assign(project, example)
+const set_example = (x: any) => Object.assign(project, x == 1 ? example_hm : x == 2 ? example_arab : example_fung)
 const new_smp = (t: string) => `${t}${project.samples.filter(x => x.group === t).length + 1}`
 const terms = reactive({ a: false, b: false, c: false })
 const projects = await Project.api.list();
@@ -42,10 +62,16 @@ const isOpen = ref(false)
 const pname = ref();
 const btn_baixar = ref(false);
 const btn_baixar_l = ref(false);
-const jobs3 = ref({ total: 0, wait: 0, error: 0, success: 0, ended: 0, info: "" })
+const jobs3 = ref({ total: 0, wait: 0, error: 0, success: 0, ended: 0, info: "", dtime: "" })
 const logs3 = ref("")
 const show_logs = ref(false)
-const dtime = ref("")
+
+
+const btn_baixar4 = ref(false);
+const btn_baixar_l4 = ref(false);
+const jobs4 = ref({ total: 0, wait: 0, error: 0, success: 0, ended: 0, info: "", dtime: "" })
+const logs4 = ref("")
+const show_logs4 = ref(false)
 
 const items = reactive([{
     label: '1. Terms and conditions',
@@ -82,10 +108,13 @@ function set_prj() {
         // acompanhar(project.commands.filter(c => c.meta === "step4").map(x => x.id), btn_baixar, btn_baixar_l, hab_prc);
         // stp1_cc.value = 100;
         //return;
+        acompanhar(jobs4, logs4,
+            project.commands.filter(c => c.meta === "step4").map(x => x.id), btn_baixar4, btn_baixar_l4, hab_prc);
     }
 
     if (!items[2].disabled) {
-        acompanhar(project.commands.filter(c => c.meta === "step3").map(x => x.id), btn_baixar, btn_baixar_l, hab_prc);
+        acompanhar(jobs3, logs3,
+            project.commands.filter(c => c.meta === "step3").map(x => x.id), btn_baixar, btn_baixar_l, hab_prc);
     }
 
 }
@@ -158,15 +187,15 @@ function remover() {
     }
 }
 
-async function acompanhar(follow: any[], btn1: { value: any }, btn2: { value: any }, hab: () => void) {
+async function acompanhar(jobs: any, logs: any, follow: any[], btn1: { value: any }, btn2: { value: any }, hab: () => void, timex = 1000) {
 
     if (follow.filter(x => x && x > 0).length < 1) {
         btn1.value = true;
         return;
     }
 
-    btn2.value = true;
-    var limit = 3600
+    btn1.value = !(btn2.value = true);
+    var limit = timex > 9999 ? 360 : 3600
     const parar = setInterval(() => {
         limit--;
         Project.api.find(project.id || NaN)
@@ -176,40 +205,50 @@ async function acompanhar(follow: any[], btn1: { value: any }, btn2: { value: an
                 const total = cms.length;
                 const term = cms.reduce((a, b) => a + (b.end ? 1 : 0), 0)
                 const ss = cms.reduce((a, b) => a + (b.success ? 1 : 0), 0)
+                const run = cms.filter(x => x.status == "running")
 
                 if (term < total)
-                    jobs3.value.info = cms.filter(x => x.status == "running").map(x => x.info).join(", ") + "...";
+                    jobs.value.info = (run.length > 0 ? run.map(x => x.info).join(", ").substring(0, 30) : 'Server busy') + " ...";
                 else
-                    jobs3.value.info = 'finished all jobs.';
+                    jobs.value.info = 'finished all jobs.';
 
-                jobs3.value.total = total;
-                jobs3.value.ended = term;
-                jobs3.value.wait = total - term;
-                jobs3.value.success = ss;
-                jobs3.value.error = term - ss;
+                jobs.value.total = total;
+                jobs.value.ended = term;
+                jobs.value.wait = run.length;
+                jobs.value.success = ss;
+                jobs.value.error = term - ss;
 
-                const f = Math.min(...cms.map(c => new Date(c.created_at || Date.now()).getTime()))
-                const l = total == term ? Math.max(...cms.map(c => new Date(c.ended_at || Date.now()).getTime())) : Date.now();
+                const f = Math.min(...cms.map(c => new Date(c.started_at || Date.now()).getTime()))
+                const l = Math.max(...cms.map(c => new Date(c.ended_at || Date.now()).getTime()));
                 const dt = l - f;
                 const mint = dt > 100000;
-                dtime.value = `${Math.round(dt / (mint ? 60000 : 1000))} ${mint ? 'min' : 's'}.`;
+                jobs.value.dtime = `${Math.round(dt / (mint ? 60000 : 1000))} ${mint ? 'min' : 's'}.`;
 
                 if (total == term || limit < 0) {
-                    clearInterval(parar)
-                    hab();
+
+                    logs.value = cms.filter(j => j.end && !j.success).map(c => {
+                        var l = `Job [${c.id}]: ${c.info}\n`;
+                        l += `Status ${c.success ? "OK" : "ERR"}: ${c.status}\n`
+                        l += "LOG: \n" + c.log + '\n';
+                        l += "OUT: \n" + c.out + '\n';
+                        l += "ERR: \n" + c.err + '\n';
+                        return l;
+                    }).join("\n-------\n\n\n");
+
+                    clearInterval(parar);
+                    btn2.value = false;
+                    if (total === term)
+                        hab();
+
+                } else if (limit == 3500) {
+                    clearInterval(parar);
+                    acompanhar(jobs, logs, follow, btn1, btn2, hab, 10000)
+                } else {
+                    btn1.value = !(btn2.value = true);
                 }
 
-                logs3.value = cms.filter(j => j.end && !j.success).map(c => {
-                    var l = `Job [${c.id}]: ${c.info}\n`;
-                    l += `Status ${c.success ? "OK" : "ERR"}: ${c.status}\n`
-                    l += "LOG: \n" + c.log + '\n';
-                    l += "OUT: \n" + c.out + '\n';
-                    l += "ERR: \n" + c.err + '\n';
-                    return l;
-                }).join("\n-------\n\n\n");
-
             }).catch(_ => alert("Invalid project") + (window.location.href = window.location.href));
-    }, 1000)
+    }, timex)
 }
 
 async function copiar() {
@@ -218,39 +257,44 @@ async function copiar() {
     const follow: any[] = [];
 
     await new CMD_Copiar(project).from(project.anotattion).to('anotattion.gff3').step(3)
-        .enqueue().then(x => follow.push(x.id));
-
-    if (zip.value)
-        await new CMD_Unzip(project).file('anotattion.gff3').step(3)
-            .enqueue().then(x => follow.push(x.id));
+        .enqueue().then(x => {
+            follow.push(x.id);
+            if (zip.value)
+                new CMD_Unzip(project).file('anotattion.gff3').wait(x.tsp || NaN)
+                    .step(3).enqueue().then(x => follow.push(x.id));
+        });
 
     await new CMD_Copiar(project).from(project.transcriptome).to('transcriptome.fna').step(3)
-        .enqueue().then(x => follow.push(x.id));
-
-    if (zip.value)
-        await new CMD_Unzip(project).file('transcriptome.fna').step(3)
-            .enqueue().then(x => follow.push(x.id));
+        .enqueue().then(x => {
+            follow.push(x.id);
+            if (zip.value)
+                new CMD_Unzip(project).file('transcriptome.fna').wait(x.tsp || NaN)
+                    .step(3).enqueue().then(x => follow.push(x.id));
+        });
 
     await new CMD_Copiar(project).from(project.genome).to('genome.fasta').step(3)
-        .enqueue().then(x => follow.push(x.id));
-
-    if (zip.value)
-        await new CMD_Unzip(project).file('genome.fasta').step(3)
-            .enqueue().then(x => follow.push(x.id));
+        .enqueue().then(x => {
+            follow.push(x.id);
+            if (zip.value)
+                new CMD_Unzip(project).file('genome.fasta').wait(x.tsp || NaN)
+                    .step(3).enqueue().then(x => follow.push(x.id));
+        });
 
     await new CMD_Copiar(project).from(project.proteome).to('proteome.faa').step(3)
-        .enqueue().then(x => follow.push(x.id));
+        .enqueue().then(x => {
+            follow.push(x.id);
+            if (zip.value)
+                new CMD_Unzip(project).file('proteome.faa').wait(x.tsp || NaN)
+                    .step(3).enqueue().then(x => follow.push(x.id));
 
-    if (zip.value)
-        await new CMD_Unzip(project).file('proteome.faa').step(3)
-            .enqueue().then(x => follow.push(x.id));
+        });
 
     project.samples.forEach(sample => new CMD_Copiar(project)
         .from(sample.acession)
         .to(sample.name)
         .step(3).enqueue().then(x => follow.push(x.id)))
 
-    acompanhar(follow, btn_baixar, btn_baixar_l, hab_prc);
+    acompanhar(jobs3, logs3, follow, btn_baixar, btn_baixar_l, hab_prc);
 
 }
 
@@ -259,33 +303,37 @@ async function baixar() {
     // criar jobs
     const follow: any[] = [];
 
-    await new CMD_Baixar(project).from(project.anotattion).to('anotattion.gff3.gz').step(3)
-        .enqueue().then(x => follow.push(x.id));
+    await new CMD_Baixar(project).from(project.anotattion).to('anotattion.gff3').step(3)
+        .enqueue().then(x => {
+            follow.push(x.id);
+            if (zip.value)
+                new CMD_Unzip(project).file('anotattion.gff3').wait(x.tsp || NaN)
+                    .step(3).enqueue().then(x => follow.push(x.id));
+        });
 
-    if (zip.value)
-        await new CMD_Unzip(project).file('anotattion.gff3.gz').step(3)
-            .enqueue().then(x => follow.push(x.id));
+    await new CMD_Baixar(project).from(project.transcriptome).to('transcriptome.fna').step(3)
+        .enqueue().then(x => {
+            follow.push(x.id);
+            if (zip.value)
+                new CMD_Unzip(project).file('transcriptome.fna').wait(x.tsp || NaN)
+                    .step(3).enqueue().then(x => follow.push(x.id));
+        });
 
-    await new CMD_Baixar(project).from(project.transcriptome).to('transcriptome.fna.gz').step(3)
-        .enqueue().then(x => follow.push(x.id));
+    await new CMD_Baixar(project).from(project.genome).to('genome.fasta').step(3)
+        .enqueue().then(x => {
+            follow.push(x.id);
+            if (zip.value)
+                new CMD_Unzip(project).file('genome.fasta').wait(x.tsp || NaN)
+                    .step(3).enqueue().then(x => follow.push(x.id));
+        });
 
-    if (zip.value)
-        await new CMD_Unzip(project).file('transcriptome.fna.gz').step(3)
-            .enqueue().then(x => follow.push(x.id));
-
-    await new CMD_Baixar(project).from(project.genome).to('genome.fasta.gz').step(3)
-        .enqueue().then(x => follow.push(x.id));
-
-    if (zip.value)
-        await new CMD_Unzip(project).file('genome.fasta.gz').step(3)
-            .enqueue().then(x => follow.push(x.id));
-
-    await new CMD_Baixar(project).from(project.proteome).to('proteome.faa.gz').step(3)
-        .enqueue().then(x => follow.push(x.id));
-
-    if (zip.value)
-        await new CMD_Unzip(project).file('proteome.faa.gz').step(3)
-            .enqueue().then(x => follow.push(x.id));
+    await new CMD_Baixar(project).from(project.proteome).to('proteome.faa').step(3)
+        .enqueue().then(x => {
+            follow.push(x.id);
+            if (zip.value)
+                new CMD_Unzip(project).file('proteome.faa').wait(x.tsp || NaN)
+                    .step(3).enqueue().then(x => follow.push(x.id));
+        });
 
     project.samples.forEach(async sample => await new CMD_Baixar(project)
         .from(sample.acession)
@@ -293,12 +341,14 @@ async function baixar() {
         .sra()
         .step(3).enqueue().then(x => follow.push(x.id)))
 
-    acompanhar(follow, btn_baixar, btn_baixar_l, hab_prc);
+    acompanhar(jobs3, logs3, follow, btn_baixar, btn_baixar_l, hab_prc);
 
 }
 
 function hab_prc() {
+
     btn_baixar.value = btn_baixar_l.value = false;
+    btn_baixar4.value = !(btn_baixar_l4.value = false);
 
     project.status = 4;
     Project.api.update(project).then(prj => {
@@ -315,7 +365,42 @@ function hab_prc() {
 }
 
 async function process() {
-    await new CMD_Qinput(project).fill().step(4).enqueue();
+    btn_baixar4.value = !(btn_baixar_l4.value = true);
+    const follow: any[] = [];
+    const hold: Promise<ICommand>[] = [];
+
+    await new CMD_Splitx(project).fill().step(4).enqueue().then(x => {
+        follow.push(x.id);
+        for (let I = 1; I <= 5; I++) {
+            hold.push(new CMD_Qinput(project).fill()
+                .genome("genome.fasta_pt" + I)
+                .anotattion("anotattion.gff3_pt" + I)
+                .step(4)
+                .wait(x.tsp || NaN).enqueue().then(x => { follow.push(x.id); return x }));
+        }
+    });
+    await Promise.all(hold);
+    console.log(hold)
+
+    await new CMD_Holder(project)
+        .add((await hold[0]).tsp || NaN)
+        .add((await hold[1]).tsp || NaN)
+        .add((await hold[2]).tsp || NaN)
+        .add((await hold[3]).tsp || NaN)
+        .add((await hold[4]).tsp || NaN)
+        .step(4).enqueue().then(x => {
+            follow.push(x.id);
+            new CMD_Joinx(project)
+                .fill().wait(x.id || NaN)
+                .step(4).enqueue().then(x => follow.push(x.id));
+        });
+
+    //await new CMD_Qinput(project).fill().step(4).enqueue().then(x => follow.push(x.id));
+    acompanhar(jobs4, logs4, follow, btn_baixar4, btn_baixar_l4, hab_exp);
+}
+
+function hab_exp() {
+
 }
 
 </script>
@@ -352,9 +437,8 @@ async function process() {
             :search-attributes="['name', 'id', 'organism']" :disabled="sel" />
         <UButton icon="i-heroicons-arrow-down-on-square-stack" @click="set_prj" :disabled="sel || !load_project">
             Load project</UButton>
-        <UButton icon="i-heroicons-arrow-top-right-on-square" class="mx-2"  
-        :to="`projects/${project.path}/results`" target="_blank"
-        v-if="project.path">
+        <UButton icon="i-heroicons-arrow-top-right-on-square" class="mx-2" :to="`projects/${project.path}/results`"
+            target="_blank" v-if="project.path">
             Go to project</UButton>
     </div>
     <p class="text-gray font-mono text-sm pt-4 text-slate-300 text-center">
@@ -429,11 +513,11 @@ async function process() {
                         <UFormGroup label="Anotattion GFF3 file" name="anotattion" class="mt-6">
                             <UInput v-model="project.anotattion" :disabled="project.status !== 2" />
                         </UFormGroup>
-                        <UFormGroup label="Proteome FAA file" name="proteome" class="mt-6">
-                            <UInput v-model="project.proteome" :disabled="project.status !== 2" />
-                        </UFormGroup>
                         <UFormGroup label="Transcripts FNA file" name="transcriptome" class="mt-6">
                             <UInput v-model="project.transcriptome" :disabled="project.status !== 2" />
+                        </UFormGroup>
+                        <UFormGroup label="Proteome FAA file" name="proteome" class="mt-6">
+                            <UInput v-model="project.proteome" :disabled="project.status !== 2" />
                         </UFormGroup>
 
                         <UDivider label="Contrast group" class="my-6" />
@@ -544,9 +628,17 @@ async function process() {
                                     :disabled="project.status !== 2">
                                     Save project
                                 </UButton>
-                                <UButton icon="i-heroicons-bolt" color="emerald" @click="set_example"
+                                <UButton icon="i-heroicons-bolt" color="emerald" @click="set_example(1)"
                                     :disabled="project.status !== 2">
-                                    Load example
+                                    Load H
+                                </UButton>
+                                <UButton icon="i-heroicons-bolt" color="emerald" @click="set_example(2)"
+                                    :disabled="project.status !== 2">
+                                    Load A
+                                </UButton>
+                                <UButton icon="i-heroicons-bolt" color="emerald" @click="set_example(3)"
+                                    :disabled="project.status !== 2">
+                                    Load F
                                 </UButton>
                             </div>
                         </template>
@@ -584,7 +676,8 @@ async function process() {
                         <template #indicator>
                             <div class="flex gap-1.5 justify-between text-sm">
                                 <p>
-                                    <UBadge color="sky" variant="subtle" class="mr-2">{{ dtime }}</UBadge> {{ jobs3.info }}
+                                    <UBadge color="sky" variant="subtle" class="mr-2">{{ jobs3.dtime }}</UBadge> {{
+                                        jobs3.info }}
                                 </p>
                                 <p class="text-gray-500 dark:text-gray-400">
                                     {{ jobs3.ended }} of {{ jobs3.total }}
@@ -595,7 +688,7 @@ async function process() {
                         <UMeter :value="jobs3.success" color="green" label="Sucess" icon="i-heroicons-check" />
                         <UMeter :value="jobs3.error" color="rose" label="Some Error"
                             icon="i-heroicons-exclamation-triangle" />
-                        <UMeter :value="jobs3.wait" color="gray" label="Waiting" icon="i-heroicons-clock" />
+                        <UMeter :value="jobs3.wait" color="gray" label="Runing" icon="i-heroicons-clock" />
                     </UMeterGroup>
 
 
@@ -614,7 +707,33 @@ async function process() {
 
             <!-- etapa 4 -->
             <template #process>
-                <UButton @click="process">proces</UButton>
+                <UButton @click="process" icon="i-heroicons-arrow-path-rounded-square" :loading="btn_baixar_l4"
+                    :disabled="!btn_baixar4" class="my-4">Build input files</UButton>
+
+                <UMeterGroup :max="jobs4.total" size="md" class="my-4" v-if="jobs4.total > 0">
+                    <template #indicator>
+                        <div class="flex gap-1.5 justify-between text-sm">
+                            <p>
+                                <UBadge color="sky" variant="subtle" class="mr-2">{{ jobs4.dtime }}</UBadge> {{ jobs4.info
+                                }}
+                            </p>
+                            <p class="text-gray-500 dark:text-gray-400">
+                                {{ jobs4.ended }} of {{ jobs4.total }}
+                            </p>
+                        </div>
+                    </template>
+
+                    <UMeter :value="jobs4.success" color="green" label="Sucess" icon="i-heroicons-check" />
+                    <UMeter :value="jobs4.error" color="rose" label="Some Error" icon="i-heroicons-exclamation-triangle" />
+                    <UMeter :value="jobs4.wait" color="gray" label="Running" icon="i-heroicons-clock" />
+                </UMeterGroup>
+
+                <UButton v-if="logs4 !== ''" @click="show_logs4 = !show_logs4" icon="i-heroicons-eye" class="my-4">Show
+                    logs</UButton>
+
+                <UTextarea v-if="show_logs4" disabled resize color="rose" variant="outline" v-model="logs4" :rows="10"
+                    size="md" />
+
             </template>
         </UAccordion>
     </div>

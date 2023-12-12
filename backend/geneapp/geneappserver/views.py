@@ -123,32 +123,62 @@ def process(command: Command):
         command.status = f'Nsubmetido'
         error = False
         if command.op == 1:
-            if job_show(command.project.path, command.id, command.arg1, command.arg2):
+            command.tsp = job_show(command.project.path, command.id, command.arg1, command.arg2)
+            if command.tsp > 0:
                 command.status = 'submetido'
             else:
                 error = True
 
         elif command.op == 2:
-            if job_copiar(command.project.path, command.id, command.arg1, command.arg2):
+            command.tsp = job_copiar(command.project.path, command.id, command.arg1, command.arg2)
+            if command.tsp > 0:
                 command.status = 'submetido'
             else:
                 error = True
 
         elif command.op == 3:
-            if job_baixar(command.project.path, command.id, 
-                          command.arg1, command.arg2, command.arg3, command.project.library == "SHORT_PAIRED"):
+            command.tsp = job_baixar(command.project.path, command.id, 
+                          command.arg1, command.arg2, command.arg3, command.project.library == "SHORT_PAIRED")
+            if command.tsp > 0:
                 command.status = 'submetido'
             else:
                 error = True
 
         elif command.op == 4:
-            if job_unzip(command.project.path, command.id, command.arg1):
+            command.tsp = job_unzip(command.project.path, command.id, command.arg1, command.lock)
+            if command.tsp > 0:
                 command.status = 'submetido'
             else:
                 error = True
 
         elif command.op == 5:
-            if job_qinput(command.project.path, command.id, command.arg1, command.arg2, command.arg3, command.arg4):
+            command.tsp = job_qinput(command.project.path, command.id, command.arg1, command.arg2, command.arg3, command.arg4, command.lock)
+            if command.tsp > 0:
+                command.status = 'submetido'
+            else:
+                error = True
+
+        elif command.op == 6:
+            command.tsp = job_splitx(command.project.path, command.id, command.arg1, command.arg2)
+            if command.tsp > 0:
+                command.status = 'submetido'
+            else:
+                error = True
+
+        elif command.op == 7:
+            command.tsp = job_joinx(command.project.path, command.id, command.arg1, command.arg2, command.lock)
+            if command.tsp > 0:
+                command.status = 'submetido'
+            else:
+                error = True
+
+        elif command.op == 8:
+            def to_int(x):
+                return 0 if x is None else int(x)
+            command.tsp = job_holder(command.project.path, command.id, 
+                                     to_int(command.arg1), to_int(command.arg2), to_int(command.arg3), 
+                                     to_int(command.arg4), to_int(command.arg5), to_int(command.arg6))
+            if command.tsp > 0:
                 command.status = 'submetido'
             else:
                 error = True
@@ -168,6 +198,7 @@ def process(command: Command):
             command.status = job['status']
             command.end = job['end']
             command.success = job['success']
+            command.started_at, command.ended_at = get_time(command.project.path, command.id)
             if command.end:
                 command.log, command.out, command.err = get_logs(command.project.path, command.id) 
         except:
@@ -175,9 +206,7 @@ def process(command: Command):
             command.err = 'Unknown error'
             command.end = True
             command.success = False
-    
-    if command.end:
-        command.ended_at = datetime.now()
+   
     return True, command
 
 

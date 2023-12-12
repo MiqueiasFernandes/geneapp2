@@ -27,7 +27,7 @@
    docker run -p 9000:9000 -v ./data:/tmp/geneappdata geneapp2-flask
 
 #########   como biudar para prd  #########  
-  cd deply_prd_dir
+  cd deploy_prd_dir
   git clone ....
   configurar variaveis
   cd geneapp2 && mkdir data/projects

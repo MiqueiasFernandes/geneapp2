@@ -10,6 +10,7 @@ PAIRED=$7
 LOG=$PROJECTS/$PROJ/jobs/job.$ID.out.txt
 ERR=$PROJECTS/$PROJ/jobs/job.$ID.err.txt
 INPUTS=$PROJECTS/$PROJ/inputs
+echo S $ID `date -Iseconds` >> "$PROJECTS/$PROJ/jobs/jobs.txt"
 
 [ $SRA ] && echo $PAIRED fasterq-dump $URL -O $INPUTS 
 [ ! $SRA ] && echo wget -qO $PARA $URL
@@ -19,3 +20,5 @@ INPUTS=$PROJECTS/$PROJ/inputs
 [ $SRA ] && fasterq-dump --split-3 $URL -O $INPUTS -t /tmp/geneappdata/sra 1> $LOG 2> $ERR
 [ $SRA ] && [ ! $PAIRED ] && mv $INPUTS/$URL.fastq $INPUTS/$PARA.fq && echo TERMINADO_COM_SUCESSO
 [ $PAIRED ] && mv $INPUTS/$URL\_1.fastq $INPUTS/$PARA.1.fq && mv $INPUTS/$URL\_2.fastq $INPUTS/$PARA.2.fq && echo TERMINADO_COM_SUCESSO
+
+echo E $ID `date -Iseconds` >> "$PROJECTS/$PROJ/jobs/jobs.txt"

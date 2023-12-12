@@ -1,6 +1,7 @@
 import time
 import requests
 import os
+from datetime import datetime, timezone
 
 GENEAPPSCRIPT_API = f"http://{os.environ.get('GENEAPPSERVICEA_PI', 'localhost:9000')}"
 LOCAL = '/tmp/geneappdata' if os.environ.get('DJANGO_PROF') == 'PRD' else '/Users/miqueias/Local/geneapp2/data'
@@ -10,7 +11,7 @@ def criar_proj():
     resp = requests.get(GENEAPPSCRIPT_API+'/criar_projeto')
     json = resp.json()
     job = json['job']
-    time.sleep(3)
+    time.sleep(2)
     return job['prj']
 
 def rm_proj(path):
@@ -35,20 +36,37 @@ def get_logs(prj, id):
 
     return log, out, err
 
+def get_time(prj, id):
+    started, ended = "", ""
+    try:
+        with open(f"{PROJECTS}/{prj}/jobs/jobs.txt") as fin:
+            for line in fin:
+                if line.startswith(f"S {id} "):
+                    started = line.strip().split(" ")[2][:45]
+                if line.startswith(f"E {id} "):
+                    ended = line.strip().split(" ")[2][:45]
+            if len(started) > 10 and len(ended) < 10:
+                ended = datetime.now(timezone.utc).replace(microsecond=0).astimezone().isoformat()
+    except:
+        pass
+    return started, ended
+
 
 def __job_get(url):
     try:
         resp = requests.get(url)
-        return resp.json()['success']
+        json = resp.json()
+        return json['job']['job'] if json['success'] else 0
     except:
-        return False
+        return 0
 
 def __job_post(url, json):
     try:
         resp = requests.post(url, json=json)
-        return resp.json()['success']
+        json = resp.json()
+        return json['job']['job'] if json['success'] else 0
     except:
-        return False
+        return 0
 
 ##"/job_status/<int:id>"
 def job_status(id):
@@ -72,12 +90,26 @@ def job_baixar(prj, id, url, fout, sra, pe):
                       {"url": url})
 
 ## OP = 4
-## /unzip/<proj>/<int:id>/<path>
-def job_unzip(prj, id, path):
-    return __job_get(f"{GENEAPPSCRIPT_API}/unzip/{prj}/{id}/{path}")
+## /unzip/<proj>/<int:id>/<path>/<int:lock>
+def job_unzip(prj, id, path, lock=0):
+    return __job_get(f"{GENEAPPSCRIPT_API}/unzip/{prj}/{id}/{path}/{lock}")
 
 ## OP = 5
-## /qinput/<proj>/<int:id>/<fg>/<fa>/<ft>/<fp>
-def job_qinput(prj, id, fg, fa, ft, fp):
-    return __job_get(f"{GENEAPPSCRIPT_API}/qinput/{prj}/{id}/{fg}/{fa}/{ft}/{fp}")
+## /qinput/<proj>/<int:id>/<fg>/<fa>/<ft>/<fp>/<int:lock>
+def job_qinput(prj, id, fg, fa, ft, fp, lock=0):
+    return __job_get(f"{GENEAPPSCRIPT_API}/qinput/{prj}/{id}/{fg}/{fa}/{ft}/{fp}/{lock}")
 
+## OP = 6
+## /splitx/<proj>/<int:id>/<fg>/<fa>
+def job_splitx(prj, id, fg, fa):
+    return __job_get(f"{GENEAPPSCRIPT_API}/splitx/{prj}/{id}/{fg}/{fa}")
+
+## OP = 7
+## /joinx/<proj>/<int:id>/<fg>/<fa>
+def job_joinx(prj, id, fg, fa, lock=0):
+    return __job_get(f"{GENEAPPSCRIPT_API}/joinx/{prj}/{id}/{fg}/{fa}/{lock}")
+
+## OP = 8
+## /holder/<proj>/<int:id>/<int:p1>/<int:p2>/<int:p3>/<int:p4>/<int:p5>/<int:p6>>
+def job_holder(prj, id, p1, p2=0, p3=0, p4=0, p5=0, p6=0):
+    return __job_get(f"{GENEAPPSCRIPT_API}/holder/{prj}/{id}/{p1}/{p2}/{p3}/{p4}/{p5}/{p6}")

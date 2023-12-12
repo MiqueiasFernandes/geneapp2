@@ -13,13 +13,14 @@ INPUTS=PROJECTS+'/inputs'
 VOID=('', 204)
 LIMIT=10
 ALLOW = ['http://ftp.ncbi.nlm.nih.gov/', 'https://ftp.ncbi.nlm.nih.gov/']
-BASIC_STR = re.compile(r"^[A-Za-z0-9:/_.-]{4,200}$")
+BASIC_STR = re.compile(r"^[A-Za-z0-9@ ,:/_.-]{4,200}$")
+SLOTS=os.environ.get('TS_SLOTS', "1")
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 100000000
 
 print(f"""
-starting GeneAPPSERVICE {LOCAL} => {datetime.today().strftime('%Y-%m-%d %HH%M')} [{LIMIT}]....
+starting GeneAPPSERVICE {LOCAL} => {datetime.today().strftime('%Y-%m-%d %HH%M')} [{LIMIT} / {SLOTS}]....
       ██████╗ ███████╗███╗   ██╗███████╗ █████╗ ██████╗ ██████╗ 
      ██╔════╝ ██╔════╝████╗  ██║██╔════╝██╔══██╗██╔══██╗██╔══██╗
      ██║  ███╗█████╗  ██╔██╗ ██║█████╗  ███████║██████╔╝██████╔╝
@@ -43,12 +44,21 @@ def root():
 @app.route("/status")
 def server():
     store = 'store is ok.'
+    tsp = "tsp is ok."
     try:
         if not os.path.isdir(INPUTS):
             os.makedirs(INPUTS)
+        Popen(["tsp", "-S", SLOTS], stdout=PIPE, stderr=PIPE)
+        p = Popen(["tsp", "-S"], stdout=PIPE, stderr=PIPE)
+        output, _ = p.communicate()
+        slots = int(output.decode('utf-8'))
+        if slots > 0:
+            tsp = f"tsp has {slots} slots"
+        else:
+            tsp = "error in tsp."
     except:
         store = 'ERROR in store.'
-    return {"store": store, "paths": [PROJECTS, INPUTS], "projects": os.listdir(PROJECTS)}
+    return {"store": store, "paths": [PROJECTS, INPUTS], "tsp": tsp, "projects": os.listdir(PROJECTS)}
 
 
 ## ## ## PROJECT CONTROL
@@ -57,15 +67,18 @@ def server():
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
 
+projects = [x for x in os.listdir(PROJECTS) if x.startswith("geneapp@")]
+
 @app.route("/criar_projeto")
 def criar_projeto():
     assert len(os.listdir(PROJECTS)) < LIMIT
     id = str(uuid.uuid4())
     local = datetime.today().strftime("%Y-%m-%d")
-    proj = f'{local}_{id}'
+    proj = f'geneapp@{local}_{id}'
     os.makedirs(f"{PROJECTS}/{proj}/inputs")
     os.makedirs(f"{PROJECTS}/{proj}/jobs")
     os.makedirs(f"{PROJECTS}/{proj}/results")
+    projects.append(proj)
     return make_job(proj, 0, ["echo", proj])
 
 @app.route("/remover_projeto/<prj>")
@@ -88,11 +101,15 @@ class Job:
     def __init__(self, prj, id, args=["echo", "OK"]):
         self.prj = prj
         self.id = int(id)  ### id do django
-        self.args = ["tsp"] + list(map(str,args))
+        self.args = list(map(str,args))
         self.status = 'created'
         self.job = None ### id do tsp
         self.end = False
         self.success = False
+
+    def lock(self, tsp_id):
+        self.args.insert(0, str(tsp_id))
+        self.args.insert(0, "-D")
 
     def run(self):
         """
@@ -103,7 +120,7 @@ class Job:
             -4. django obtem status via GET
             -4. tsp copia log para o proj via POST job_status
         """
-        p = Popen(self.args, stdout=PIPE, stderr=PIPE)
+        p = Popen(["tsp"] + self.args, stdout=PIPE, stderr=PIPE)
         output, error = p.communicate()
         self.job = int(output.decode('utf-8'))
         return self, p.returncode == 0, error.decode('utf-8')
@@ -155,8 +172,10 @@ def get_job_status(id: int):
     job.status = (output.decode('utf-8') + error.decode('utf-8')).strip()
     return job.parse()
 
-def make_job(proj:str, id:int, args):
+def make_job(proj:str, id:int, args, lock=None):
     job = Job(proj, id, args)
+    if not lock is None:
+        job.lock(lock)
     ids[id] = job
     _, success, err = job.run()
     jobs[job.job] = job
@@ -169,26 +188,32 @@ def make_job(proj:str, id:int, args):
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
 
 def clean(external, allow=lambda f: any([f.startswith(x) for x in ALLOW])):
-    external = external.strip().replace('..', '.')
-    assert re.fullmatch(BASIC_STR, external) 
-    assert (not external.startswith('/')) and (not external.endswith('/'))
-    assert allow(external)
+    try:
+        external = external.strip().replace('..', '.')
+        assert re.fullmatch(BASIC_STR, external) 
+        assert (not external.startswith('/')) and (not external.endswith('/'))
+        assert allow(external)
+    except:
+        raise Exception(f"STR INV: {external} FN: {allow}")
     return external
 
 @app.route("/show/<proj>/<int:id>/<file>", methods=['POST'])
 def show(proj, id, file): ## salvar texto na pasta results
+    assert id >= 0 and proj in projects
     request_data = request.get_json()
     msg = clean(request_data['msg'], allow=lambda e: True)
     return make_job(proj, id, [f"{SCRIPTS}/show.sh", PROJECTS, proj, id, file, msg])
 
 @app.route("/copiar/<proj>/<int:id>/<fin>/<fout>")
 def copiar(proj, id, fin, fout): ## copiar do inputs geral para o inputs do projeto
+    assert id >= 0 and proj in projects
     src = clean(fin, lambda f: f in os.listdir(f'{INPUTS}'))
     dst = clean(fout, lambda _: True)
     return make_job(proj, id, [f"{SCRIPTS}/copiar.sh", PROJECTS, proj, id, src, dst])
 
 @app.route("/baixar/<proj>/<int:id>/<out>/<int:sra>/<int:paired>", methods=['POST'])
 def baixar(proj, id, out, sra, paired): ## baixar no inputs do projeto
+    assert id >= 0 and proj in projects
     request_data = request.get_json()
     url = clean(request_data['url'], lambda _: True) if sra == 1 else clean(request_data['url'])
     dst = clean(out, lambda _: True)
@@ -199,26 +224,51 @@ def baixar(proj, id, out, sra, paired): ## baixar no inputs do projeto
             args.append("1")
     return make_job(proj, id, args)
 
-@app.route("/unzip/<proj>/<int:id>/<path>")
-def unzip(proj, id, path): ## abrir aquivo ou pasta da pasta no inputs do projeto
+@app.route("/unzip/<proj>/<int:id>/<path>/<int:lock>")
+def unzip(proj, id, path, lock: int): ## abrir aquivo ou pasta da pasta no inputs do projeto
+    assert id >= 0 and proj in projects
     src = clean(path, lambda _: True)
-    return make_job(proj, id, [f"{SCRIPTS}/zip.sh", PROJECTS, proj, id, src])
+    return make_job(proj, id, [f"{SCRIPTS}/zip.sh", PROJECTS, proj, id, src], lock if lock > 0 else None)
 
 @app.route("/zip/<proj>/<int:id>/<path>")
 def zip(proj, id, path): ## comprimir aquivo ou pasta da pasta do inputs do projeto
+    assert id >= 0 and proj in projects
     src = clean(path, lambda _: True)
     return make_job(proj, id, [f"{SCRIPTS}/zip.sh", PROJECTS, proj, id, src, 1])
 
-@app.route("/qinput/<proj>/<int:id>/<fg>/<fa>/<ft>/<fp>")
-def qinput(proj, id, fg, fa, ft, fp): ## comprimir aquivo ou pasta da pasta do inputs do projeto
+@app.route("/qinput/<proj>/<int:id>/<fg>/<fa>/<ft>/<fp>/<int:lock>")
+def qinput(proj, id, fg, fa, ft, fp, lock: int): ## validar arquivos de entrada
+    assert id >= 0 and proj in projects
+    fg = clean(fg, lambda _: True)
+    fa = clean(fa, lambda _: True)
+    ft = clean(ft, lambda _: True)
+    fp = clean(fp, lambda _: True)
+    return make_job(proj, id, [f"{SCRIPTS}/qinput.py", PROJECTS, proj, id, fg, fa, ft, fp], lock if lock > 0 else None)
+
+@app.route("/splitx/<proj>/<int:id>/<fg>/<fa>")
+def splitx(proj, id, fg, fa): ## dividir arquivos de entrada
+    assert id >= 0 and proj in projects
     fg = clean(fg, lambda f: f in os.listdir(f'{INPUTS}'))
     fa = clean(fa, lambda f: f in os.listdir(f'{INPUTS}'))
-    ft = clean(ft, lambda f: f in os.listdir(f'{INPUTS}'))
-    fp = clean(fp, lambda f: f in os.listdir(f'{INPUTS}'))
-    return make_job(proj, id, [f"{SCRIPTS}/qinput.py", PROJECTS, proj, id, fg, fa, fp, ft])
+    return make_job(proj, id, [f"{SCRIPTS}/splitx.py", PROJECTS, proj, id, fg, fa])
 
+@app.route("/joinx/<proj>/<int:id>/<fg>/<fa>/<int:lock>")
+def joinx(proj, id, fg, fa, lock: int): ## juntar results arquivos de entrada
+    assert id >= 0 and proj in projects
+    fg = clean(fg, lambda f: f in os.listdir(f'{INPUTS}'))
+    fa = clean(fa, lambda f: f in os.listdir(f'{INPUTS}'))
+    return make_job(proj, id, [f"{SCRIPTS}/joinx.sh", PROJECTS, proj, id, fg, fa], lock if lock > 0 else None)
 
-
+@app.route("/holder/<proj>/<int:id>/<int:p1>/<int:p2>/<int:p3>/<int:p4>/<int:p5>/<int:p6>")
+def holder(proj, id, p1, p2, p3, p4, p5, p6): ## segurar ate finalizar jobs dependencia
+    assert id >= 0 and proj in projects and p1 > 0
+    args = [f"{SCRIPTS}/holder.sh", PROJECTS, proj, id, p1]
+    if p2 > 0: args.append(p2)
+    if p3 > 0: args.append(p3)
+    if p4 > 0: args.append(p4)
+    if p5 > 0: args.append(p5)
+    if p6 > 0: args.append(p6)
+    return make_job(proj, id, args)
 
 
 server()

@@ -7,6 +7,7 @@ M=$5        ## 1
 
 LOG=$PROJECTS/$PROJ/jobs/job.$ID.out.txt
 ERR=$PROJECTS/$PROJ/jobs/job.$ID.err.txt
+echo S $ID `date -Iseconds` >> "$PROJECTS/$PROJ/jobs/jobs.txt"
 
 cd $PROJECTS/$PROJ
 
@@ -16,12 +17,14 @@ cd $PROJECTS/$PROJ
 ## decompress
 [ ! $M ] && cd inputs
 [ ! $M ] && tar -tf $X && echo UNTARGZ && HANDLE=1 && tar -xvf $X 1> $LOG 2> $ERR
-[ ! $M ] && [ ! $HANDLE ] && gzip -t $X && echo GUNZIP && HANDLE=1 && gunzip $X 1> $LOG 2> $ERR ### not working for local
-[ ! $M ] && [ ! $HANDLE ] && zip -t $X && echo UNZIP && HANDLE=1 && unzip $X 1> $LOG 2> $ERR    ### not working
+[ ! $M ] && [ ! $HANDLE ] && gunzip -t $X && echo GUNZIP && HANDLE=1 && mv $X $X.gz && gunzip $X.gz 1> $LOG 2> $ERR ### not working for local
+[ ! $M ] && [ ! $HANDLE ] && unzip -t $X && echo UNZIP && HANDLE=1 && unzip $X 1> $LOG 2> $ERR    ### not working
 
 ## compress
-[ $M ] && [ -f $X ] || [ -d $X ] && echo TAR && HANDLE=1 && tar -cvf $X.tar.gz $X 1> $LOG 2> $ERR && cp $X.tar.gz results
+[ $M ] && ([ -f $X ] || [ -d $X ]) && echo TAR && HANDLE=1 && tar -cvf $X.tar.gz $X 1> $LOG 2> $ERR && cp $X.tar.gz results
 ##[ $M ] && [ -f $X ] && [ ! $HANDLE ] && echo GZIP && HANDLE=1 && gzip -k $X 1> $LOG 2> $ERR ## mac not works
 
 [ $HANDLE ] && echo TERMINADO_COM_SUCESSO
 [ ! $HANDLE ] && echo TERMINADO_COM_ERRO
+
+echo E $ID `date -Iseconds` >> "$PROJECTS/$PROJ/jobs/jobs.txt"

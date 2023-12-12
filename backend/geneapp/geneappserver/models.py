@@ -17,8 +17,11 @@ class Sample(models.Model):
 class Command(models.Model):
     
     created_at = models.DateTimeField(auto_now_add=True)
-    ended_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.CharField(max_length=50, blank=True, null=True)
+    ended_at = models.CharField(max_length=50, blank=True, null=True)
     op=models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(9)])
+    tsp=models.PositiveIntegerField(default=0, validators=[MaxValueValidator(999999)])
+    lock=models.PositiveIntegerField(default=0, validators=[MaxValueValidator(999999)])
     arg1=models.CharField(max_length=200, blank=True, null=True)
     arg2=models.CharField(max_length=200, blank=True, null=True)
     arg3=models.CharField(max_length=200, blank=True, null=True)

@@ -9,6 +9,7 @@ export interface ICommand extends IModel {
     success?: boolean;
     end?: string;
     created_at?: string;
+    started_at?: string;
     ended_at?: string;
 
     info?: string;
@@ -17,7 +18,9 @@ export interface ICommand extends IModel {
     log?: string;
     err?: string;
 
-    op: number
+    op: number;
+    tsp?: number;
+    lock?: number;
     arg1?: string;
     arg2?: string;
     arg3?: string;
@@ -46,6 +49,7 @@ class CMD implements ICommand {
     id?: number | undefined;
 
     op: number = 1;
+    lock?: number | undefined;
     status?: string | undefined;
     info?: string = 'bash command';
     meta?: string = 'step 0';
@@ -59,11 +63,11 @@ class CMD implements ICommand {
     arg2?: string | undefined;
     arg3?: string | undefined;
     arg4?: string | undefined;
-    // arg5?: string | undefined;
-    // arg6?: string | undefined;
-    // arg7?: string | undefined;
-    // arg8?: string | undefined;
-    // arg9?: string | undefined;
+    arg5?: string | undefined;
+    arg6?: string | undefined;
+    arg7?: string | undefined;
+    arg8?: string | undefined;
+    arg9?: string | undefined;
 
     constructor(public prj: IProject) {
         this.project_id = prj.id;
@@ -78,6 +82,8 @@ class CMD implements ICommand {
         this.status = 'exec';
         return Command.api.create(this);
     }
+
+    wait(id: number) { this.lock = id; return this }
 
 }
 
@@ -108,8 +114,8 @@ export class CMD_Qinput extends CMD {
     info = 'Quality control data input files';
     genome(file: string) { this.arg1 = file; return this }
     anotattion(file: string) { this.arg2 = file; return this }
-    proteome(file: string) { this.arg3 = file; return this }
-    transcriptome(file: string) { this.arg4 = file; return this }
+    transcriptome(file: string) { this.arg3 = file; return this }
+    proteome(file: string) { this.arg4 = file; return this }
 
     fill() {
         this.genome('genome.fasta');
@@ -117,5 +123,47 @@ export class CMD_Qinput extends CMD {
         this.proteome('proteome.faa');
         this.transcriptome('transcriptome.fna');
         return this;
+    }
+}
+
+export class CMD_Splitx extends CMD {
+    op = 6;
+    info = 'Split data input files';
+    genome(file: string) { this.arg1 = file; return this }
+    anotattion(file: string) { this.arg2 = file; return this }
+
+    fill() {
+        this.genome('genome.fasta');
+        this.anotattion('anotattion.gff3');
+        return this;
+    }
+}
+
+export class CMD_Joinx extends CMD {
+    op = 7;
+    info = 'Join data input files';
+    genome(file: string) { this.arg1 = file; return this }
+    anotattion(file: string) { this.arg2 = file; return this }
+
+    fill() {
+        this.genome('genome.fasta');
+        this.anotattion('anotattion.gff3');
+        return this;
+    }
+}
+
+export class CMD_Holder extends CMD {
+    op = 8;
+    info = 'Holder for jobs finish toghether';
+
+    add(x: number) {
+        const tsp = `${x}`;
+        if(!this.arg1)  {this.arg1 = tsp; return this};
+        if(!this.arg2)  {this.arg2 = tsp; return this};
+        if(!this.arg3)  {this.arg3 = tsp; return this};
+        if(!this.arg4)  {this.arg4 = tsp; return this};
+        if(!this.arg5)  {this.arg5 = tsp; return this};
+        if(!this.arg6)  {this.arg6 = tsp; return this};
+        return this
     }
 }

@@ -19,8 +19,8 @@ services:
     hostname: geneappservice
     volumes:
       - ./data:/tmp/geneappdata
-    env_file:
-      - ./profile_PRD.env
+ #   environment:
+ #     - TS_SLOTS=${SLOTS_CPU}
 
   nuxt:
     build:
