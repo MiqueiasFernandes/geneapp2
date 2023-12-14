@@ -11,7 +11,7 @@ I=$PROJECTS/$PROJ/inputs
 R=$PROJECTS/$PROJ/results
 LOG=$PROJECTS/$PROJ/jobs/job.$ID.out.txt
 ERR=$PROJECTS/$PROJ/jobs/job.$ID.err.txt
-source /app/flask_env/bin/activate
+source /app/geneapp_env/bin/activate
 echo ".... QINPUT SH ...." > $LOG
 touch $ERR
 echo S $ID `date -Iseconds` >> "$PROJECTS/$PROJ/jobs/jobs.txt"
@@ -28,7 +28,7 @@ echo $Z
 cd $PROJECTS/$PROJ
 gffread $I/$A -g $I/$G --no-pseudo -UCOo $R/$X &&
 gffread $R/$X -g $I/$G -w $R/transcripts.fa -x $R/cds.fa -Sy $R/proteins.fa -To $R/genes.gtf &&
-cat <<EOF | python3 - && echo TERMINADO_COM_SUCESSO
+cat <<EOF | /app/scripts/py - && echo TERMINADO_COM_SUCESSO
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 x = "$I/$G"

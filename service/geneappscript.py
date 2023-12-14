@@ -103,6 +103,8 @@ class Job:
         self.prj = prj
         self.id = int(id)  ### id do django
         self.args = list(map(str,args))
+        if self.args[0].endswith(".py"):
+            self.args.insert(0, "/app/scripts/py" )
         self.status = 'created'
         self.job = None ### id do tsp
         self.end = False
