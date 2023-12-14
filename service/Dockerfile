@@ -2,7 +2,7 @@ FROM debian:bookworm
 
 WORKDIR /app
 COPY requirements.txt geneappservice.sh geneappscript.py /app/
-RUN apt update -y && apt install -y python3-pip python3-venv task-spooler wget curl zip unzip sra-toolkit python3-biopython
+RUN apt update -y && apt install -y python3-pip python3-venv python3-biopython task-spooler wget curl zip unzip sra-toolkit gffread
 RUN python3 -m venv /app/flask_env
 RUN . /app/flask_env/bin/activate && pip install -r requirements.txt --no-cache-dir
 ENV PATH="/app/flask_env/bin:$PATH"

@@ -5,9 +5,6 @@ import re
 from Bio import SeqIO
 from datetime import datetime, timezone
 
-MIN_SEQ=1000000
-MIN_G_SEQ=100
-
 PROJECTS=sys.argv[1] ## /tmp/geneappdata/projects
 PROJ=sys.argv[2]     ## 2023-12-08_c7f88f0d-f4b6-40ec-9c0e-71da742579c3
 ID=sys.argv[3]       ## 99
@@ -15,13 +12,12 @@ INPUTS=f"{PROJECTS}/{PROJ}/inputs/"
 RESULTS=f"{PROJECTS}/{PROJ}/results/"
 open(f"{PROJECTS}/{PROJ}/jobs/jobs.txt", "a").write("S " + ID + " "+ datetime.now(timezone.utc).replace(microsecond=0).astimezone().isoformat()+"\n")
 
-## genome.fasta => anotattion.gff3 => transcriptome.fna => proteome.faa
 GN=sys.argv[4]
 GENOM=INPUTS+GN
 AN=sys.argv[5]
 ANOT=INPUTS+AN
-TRANSCRIPT=INPUTS+sys.argv[6]
-PROTEOM=INPUTS+sys.argv[7]
+GOUT=INPUTS+sys.argv[6]
+AOUT=INPUTS+sys.argv[7]
 
 LOG=f"{PROJECTS}/{PROJ}/jobs/job.{ID}.out.txt"
 ERR=f"{PROJECTS}/{PROJ}/jobs/job.{ID}.err.txt"
@@ -39,248 +35,148 @@ def err(msg):
 seqs = [x for x in open(GENOM) if x.startswith('>')]
 log(f'#{len(seqs)} found in fasta {GENOM}')
 
-print("validando genoma ...")
+print(f"... QINPUT PY ...")
 
-CGENOM=INPUTS+"cln_"+GN
+FILE_GENOME=GENOM
+FILE_GFF=ANOT
+GENOM_OUT=GOUT
+GFF_OUT=AOUT
+MIN_FRG=100
+MAX_FRG=1000000
+MIN_CHR=1000000
+MAX_CHR=1000000000
+MAX_CHRS=100
+MIN_SEQS=1
+MAX_SEQS=1000000
+GEN_RGX = re.compile(r"^[actgnrykmswbdhvACTGNRYKMSWBDHV]+$")
+PTN_RGX = re.compile(r"^[a-zA-Z]+$")
 
-valid_seqs, invalid_seqs, tam = [], [], 0
-seq_id, buf, valid = None, [], True
-map_seqs = {}
-map_nn = {}
-sizes = {}
-GENOM_STR = re.compile(r"^[actgnrykmswbdhvACTGNRYKMSWBDHV]+$")
-open(CGENOM, 'w').write('')
-for line in open(GENOM):
-    if line.startswith('>'):
-        name = line.strip()[1:].split(' ')[0]
-        if name in sizes:
-            err("SEQ " + name + " DUPLICATED NAME IN FILE "+GENOM)
-            exit(1)
-        if seq_id is None:
-            seq_id = name
-            valid = len(seq_id) > 1
-        else:
-            if valid and (not tam > MIN_SEQ):
-                err("Seq "+ seq_id+ " invalid size => "+ str(tam))
-            valid = tam > MIN_SEQ
-            sizes[seq_id] = tam
-            if valid:
-                valid_seqs.append(seq_id)
-                nn = f'Chr{str(len(valid_seqs)).rjust(2, "0")}'
-                map_seqs[seq_id] = nn
-                map_nn[nn] = seq_id
-                open(CGENOM, 'a').writelines([">"+nn+"\n"]+buf)
-            else:
-                invalid_seqs.append(seq_id)
-            buf = []
-            seq_id = name
-            valid = len(seq_id) > 1
-            tam = 0
-    elif valid:
-        x = line.strip()
-        if re.fullmatch(GENOM_STR, x):
-            buf.append(x + '\n')
-            tam += len(x)
-        else:
-            err("Seq "+ seq_id +" invalid => " +line)
-            valid = False
+def clean_fasta(fin, fout, rgx, min_len, max_len, nseqs, stats=None):
+    bp_seqs = lambda : SeqIO.parse(fin, "fasta")
+    seqs = sorted([[x.id, len(x), 
+                    not rgx.match(str(x.seq)) is None, 
+                    len(x) < max_len, len(x) > min_len, False] 
+                    for x in bp_seqs()], key=lambda e: -e[1])
 
-if valid and tam > MIN_SEQ:
-    valid_seqs.append(seq_id)
-    nn = f'Chr{str(len(valid_seqs)).rjust(2, "0")}'
-    map_seqs[seq_id] = nn
-    map_nn[nn] = seq_id
-    sizes[seq_id] = tam
-    open(CGENOM, 'a').writelines([">"+nn+"\n"]+buf)
-else:
-    invalid_seqs.append(seq_id)
+    seqs_val, seqs_inv = [], []
+    for seq in seqs:
+        if len(seqs_val) < nseqs:
+            seq[5] = True
+            if seq[2] and seq[3] and seq[4]:
+                seqs_val.append(seq[0])
+                continue
+        seqs_inv.append(seq[0])
+    assert len(seqs_val) >= MIN_SEQS
+    SeqIO.write([x for x in bp_seqs() if x.id in seqs_val], fout, "fasta")
+    tt, sv, si =  len(seqs), len(seqs_val), len(seqs_inv)
+    print("Valid seqs:", sv, f"{int(sv / tt *100)}%")
+    print("Invalid seqs:", si, f"{int( si / tt *100)}%")
+    print("Total seqs:", tt)
+    v, i = ([x for x in seqs if x[0] in z] for z in [seqs_val, seqs_inv])
+    if stats:
+        open(stats, "w").writelines(["\t".join(map(str, x))+"\n" for x in i])
+    return v, i
 
-if len(invalid_seqs) > 0:
-    err("INVALID SEQS:" + ", ".join(invalid_seqs))
+def get_parts(gff, tp):
+    for l in open(gff):
+        if l.startswith("#"): continue
+        fs = l[:200].strip().split("\t")
+        if len(fs) != 9 or fs[2] != tp: continue
+        seq, _, tp, start, end, _, strand, frame, anots,  = fs
+        id =  anots.split("ID=")[1].split(";")[0] if "ID=" in anots else None
+        parent = anots.split("Parent=")[1].split(";")[0] if "Parent=" in anots else None
+        yield l, seq, tp, int(start), int(end), strand, frame, id, parent
 
-if len(valid_seqs) < 1:
-    err("NOT SEQ VALIDA FOUND")
-    exit(1)
+def clean_gff(gffin, seqs=None):
+    for t in ["gene", "mRNA", "exon", "CDS"]:
+        for L, seq, _, start, end, strand, frame, id, parent in get_parts(gffin, t):
+            try:
+                assert len(seq) > 0
+                assert start <= end and start > 0
+                assert strand == "+" or strand == "-"
+                assert float("0"+frame) < 3
+                assert t == "exon" or t == "CDS" or len(id) > 1
+                if (not seqs is None) and (not seq in seqs): continue
+                yield seq, None, t, start, end, None, strand, frame, id, parent
+            except:
+                pass
+                ##raise Exception(f"INVALID LINE IN FILE {FILE_GFF}: " + L)
+
+def sortgff(dt, fout):
+    buf, ret  = [], {t: 0 for t in ["gene", "mRNA", "exon", "CDS"]}
+    for l in dt:
+        cr, _, tp, a, b, _, st, fr, i, p = l
+        a = int(a)
+        buf.append([i, p, cr, tp, a, b, st, fr])
+
+    gs, ms, es, cs = {}, {}, {}, {}
+
+    for e in buf:
+        if e[3] == 'gene':
+            gs[e[0]] = [e, {}]
+
+    pg = False
+    if all([x.startswith('gene-') and len(x) > 5 for x in gs]):
+        pg = True
+
+    for e in buf:
+        if e[3] == 'mRNA' and e[1] in gs:
+            m = [e, [], [], 0, 0]
+            ms[e[0]] = m
+            gs[e[1]][1][e[0]] = m
     
-tt_size = 0
-gs=INPUTS+GN+".stats.txt"
+    pm = False
+    if all([x.startswith('rna-') and len(x) > 5 for x in ms]):
+        pm = True
 
-with open(gs, 'w') as fo:
-    for seq, s in sizes.items():
-        if seq in valid_seqs:
-            tt_size += s
-            fo.write(f"{map_seqs[seq]}\t{s}\t{seq}\n")
+    for e in buf:
+        if e[1] in ms:
+            if e[3] == 'exon':
+                ms[e[1]][1].append(e)
+                ms[e[1]][3] += 1
+            elif e[3] == 'CDS':
+                ms[e[1]][2].append(e)
+                ms[e[1]][4] += 1
 
-if tt_size > MIN_SEQ*10000:
-    err(f"GENOM TOO BIGGER {tt_size}")
-    exit(1)
+    def to_ln(e, i, p=None):
+        a = f"{e[2]}\t.\t{e[3]}\t{e[4]}\t{e[5]}\t.\t{e[6]}\t{e[7]}\t"
+        b = f"ID={i}{('' if e[1] is None else ';Parent='+(e[1] if p is None else p))}\n"
+        return a+b
 
-print(len(valid_seqs), "VALID SEQS")
-print(f"GENOME total size {tt_size} base pairs.")
+    with open(fout, 'w') as fo:
+        for gid, [g, dms] in sorted(gs.items(), key=lambda e: [e[1][0][2], e[1][0][4]]):
+            ## se esse gene tem algum mRNA com >1 exon e algum cds
+            if len([d for d in dms.values() if d[3] > 1 and d[4] > 0]) > 0:
+                fo.write(to_ln(g, gid[5:] if pg else gid))
+                ret["gene"] += 1
+                for mid, [m, es, cs, _, _] in dms.items():
+                    if len(es) > 0:
+                        fo.write(to_ln(m, mid[4:] if pm else mid, gid[5:] if pg else gid))
+                        ret["mRNA"] += 1
+                        j, k = 0, 0
+                        for e in es:
+                            ret["exon"] += 1
+                            j += 1
+                            fo.write(to_ln(e, f'e{ret["gene"]}.{ret["mRNA"]}.{j}', mid[4:] if pm else mid))
+                        for c in cs:
+                            ret["CDS"] += 1
+                            k += 1
+                            fo.write(to_ln(c, f'c{ret["gene"]}.{ret["mRNA"]}.{k}', mid[4:] if pm else mid))
+    return ret
 
-def get_entry(gff, seq, t="gene"):
-    chrm = seq+"\t"
-    raw = [x.strip().split('\t')[:9] for x in open(gff) if x.startswith(chrm)]
-    valid = [x for x in raw if x[2] == t and len(x) == 9]
-    loc = [[seq if t == 'gene' else d.split("Parent=")[1].split(";")[0],
-            d.split("ID=")[1].split(";")[0],c,a,b,x] for _,_,_,a,b,_,c,x,d in valid]
-    return loc
+def makegff(fin, fout, seqs):
+    dt = clean_gff(fin, seqs)
+    return sortgff(dt, fout)
 
-def valid_regs(gff, chrm):
+valids, _ = clean_fasta(FILE_GENOME, GENOM_OUT, 
+                   GEN_RGX, MIN_CHR, MAX_CHR, MAX_CHRS, RESULTS+"invalid_stats.txt")
 
-        def validator(pai, id, strand, start, end, phase):
-                try:
-                        if (not start.isdigit()) or (not end.isdigit()):
-                                return False 
-                        a, b = int(start), int(end)
-                        assert a > 0 and b > a
-                        assert strand == "+" or strand == "-"
-                except:
-                        return False
-                return len(pai.strip()) > 1 and len(id.strip()) > 1 and phase in ['.' ,'0', '1', '2']
+outp = makegff(FILE_GFF, GFF_OUT, [x[0] for x in valids])
 
-        _genes = [x for x in get_entry(gff, chrm)]
-        _mrnas = [x for x in get_entry(gff, chrm, "mRNA")]
-        _exons = [x for x in get_entry(gff, chrm, "exon")]
-        _cds = [x for x in get_entry(gff, chrm, "CDS")]
-
-        genes = [x for x in _genes if validator(*x)]
-        mrnas = [x for x in _mrnas if validator(*x)]
-        exons = [x for x in _exons if validator(*x)]
-        cds = [x for x in _cds if validator(*x)]
-
-        mrna_cds = set([x[0] for x in cds])
-        mrna_exons = set([x[0] for x in exons])
-        vmrnas = mrna_cds.intersection(mrna_exons)
-        mids = set([x[1] for x in mrnas]).intersection(vmrnas)
-        gids = set([x[1] for x in genes])
-
-        vmids = [x[1] for x in mrnas if x[0] in gids and x[1] in mids]
-
-        clean_cds = [x for x in cds if x[0] in vmids]
-        clean_exon = [x for x in exons if x[0] in vmids]
-        clean_mrna = [x for x in mrnas if x[1] in vmids]
-        vgids = set([x[0] for x in clean_mrna])
-        clean_gene = [x for x in genes if x[1] in vgids]
-
-        _c = set([x[1] for x in clean_cds])
-        mcds_err = set([x[0] for x in cds if not x[1] in _c])
-        _e = set([x[1] for x in clean_exon])
-        mexon_err = set([x[0] for x in exons if not x[1] in _e])
-        merr = mcds_err.union(mexon_err)
-        gerr = [x[0] for x in clean_mrna if x[1] in merr]
-
-        gene_ok = [g for g in clean_gene if not g[1] in gerr]
-        mrna_ok = [m for m in clean_mrna if not m[0] in gerr]
-        mids = set([x[1] for x in mrna_ok])
-        exon_ok = [e for e in clean_exon if e[0] in mids]
-        cds_ok = [c for c in clean_cds if c[0] in mids]
-
-        inv = len(_genes)-len(gene_ok), len(_mrnas)-len(mrna_ok), len(_exons)-len(exon_ok), len(_cds)-len(cds_ok)
-
-        return clean_gene, clean_mrna, clean_exon, clean_cds, inv
-
-def regorg(genes, mrnas, exons, cds):
-        
-        ms_g = {x[1]: [] for x in genes}
-        for m in mrnas:
-              ms_g[m[0]].append(m)
-
-        es_m = {x[1]: [] for x in mrnas}
-        for e in exons:
-              es_m[e[0]].append(e)
-
-        cs_m = {x[1]: [] for x in mrnas}
-        for c in cds:
-              cs_m[c[0]].append(c)
-
-        for seq, gene, strand, start, end, phase in genes:
-                yield 'gene', gene, seq, strand, start, end, phase
-                for gid, mrna, strand, start, end, phase in ms_g[gene]:
-                        yield 'mRNA', mrna, gid, strand, start, end, phase
-                        for mid, exon, strand, start, end, phase in es_m[mrna]:
-                                yield 'exon', exon, mid, strand, start, end, phase
-                        for mid, icds, strand, start, end, phase in cs_m[mrna]:
-                                yield 'CDS', icds, mid, strand, start, end, phase
-                                
-def rename(seq, gff, cg=1):
-        dt, mapx, cm, ce, cc = [], {}, 0, 0, 0
-        for t,id,parent,strand,start,end,frame in gff:
-                if t == 'gene':
-                        x = f'gene{str(cg).rjust(4, "0")}'
-                        cg += 1
-                        mapx[id] = x
-                        dt.append([seq, '', 'gene', start, end, '', strand,frame,"ID="+x])
-                        cm, ce, cc = 0, 0, 0
-                elif t == 'mRNA':
-                        cm += 1
-                        x = f'{mapx[parent]}m{str(cm).rjust(2, "0")}'
-                        mapx[id] = x
-                        dt.append([seq, '', 'mRNA', start, end, '', strand,frame,f"ID={x};Parent={mapx[parent]}"])
-                elif t == 'exon':
-                        ce += 1
-                        x = f'{mapx[parent]}e{str(ce).rjust(2, "0")}'
-                        mapx[id] = x
-                        dt.append([seq, '', 'exon', start, end, '', strand,frame,f"ID={x};Parent={mapx[parent]}"])
-                elif t == 'CDS':
-                        cc += 1
-                        x = f'{mapx[parent]}c{str(cc).rjust(2, "0")}'
-                        mapx[id] = x
-                        dt.append([seq, '', 'CDS', start, end, '', strand,frame,f"ID={x};Parent={mapx[parent]}"])
-        return dt, mapx
-          
-def clean_gff(gff, seqs_map, gout, mout):
-        invs, gcount, emap = [], 1, {}
-        with open(gout, 'w') as fo:
-                for seq, nseq in seqs_map.items():
-                        genes, mrnas, exons, cds, inv = valid_regs(gff, seq)
-                        invs.append([nseq, seq, list(map(len, [genes, mrnas, exons, cds])), inv])
-                        rg = list(regorg(genes, mrnas, exons, cds))
-                        ng, mx = rename(nseq, rg, gcount)
-                        gcount = len(genes)+1
-                        emap.update(mx)
-                        for l in ng:
-                                fo.write("\t".join(l)+"\n")
-        with open(mout, 'w') as fo:
-                for k, v in emap.items():
-                        fo.write(f"{v}\t{k}\n")
-        return invs
-
-seqs = {x[2]: x[0] for x in [x.strip().split("\t") for x in open(gs)]}
-cln_anot = clean_gff(ANOT, seqs, INPUTS+AN+".genes.gff3", INPUTS+AN+".gene_rename.txt")
-seqs_vz = [x[0] for x in cln_anot if x[2][0] < MIN_G_SEQ]
-seqs = [x[1] for x in sorted([(int(b), a) for a, b, _ in [x.split('\t') for x in open(gs)]], key=lambda e: -e[0])]
-seq_ir = [x for x in seqs if not x in seqs_vz]
-
-print(len(seq_ir), "Valid seqs", seq_ir)
-
-if len(seqs_vz) > 0:
-    err(f"SEQ HAS NO GENES: " + ", ".join(seqs_vz))
-
-if len(seq_ir) < 1:
-    err(f"GENOM HAS NO annotated seqs.")
-    exit(1)
-
-for s in seq_ir:
-    for seq in SeqIO.parse(CGENOM, "fasta"):
-        if seq.id == s:
-            with open(INPUTS+GN+'.genome.fa', 'a') as fw:
-                SeqIO.write(seq, fw, "fasta")
-
-gs, ms, es, cs = 0, 0, 0, 0
-with open(INPUTS+GN+".data_quality.csv", "w") as fo:
-    fo.write("Chr;Seq;Genes;mRNAs;Exons;CDS;invG;invM;invE;invC\n")
-    for (a,b,(c,d,e,f),(g,h,i,j)) in cln_anot:
-        fo.write(";".join(list(map(str,[a,b,c,d,e,f,g,h,i,j])))+"\n")
-        gs += c
-        ms += d
-        es += e
-        cs += f
-
-print("Seqs", len(seq_ir), "Genes", gs, "mRNA", ms, "Exons", es, "CDS", cs)
-
-
-
+## {'gene': 45000, 'mRNA': 137721, 'exon': 2223011, 'CDS': 1772807}
+print("Seqs", len(valids), 
+      "Genes", outp['gene'], "mRNA", outp['mRNA'], 
+      "Exons", outp['exon'], "CDS", outp['CDS'])
 
 print('TERMINADO_COM_SUCESSO')
 

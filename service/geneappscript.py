@@ -1,6 +1,7 @@
 from flask import Flask, request
 import uuid
 import os
+import sys
 import re
 import shutil
 from datetime import datetime
@@ -106,6 +107,7 @@ class Job:
         self.job = None ### id do tsp
         self.end = False
         self.success = False
+        self.logf = f"{PROJECTS}/{self.prj}/jobs/job.{self.id}.log.txt"
 
     def lock(self, tsp_id):
         self.args.insert(0, str(tsp_id))
@@ -124,6 +126,11 @@ class Job:
         output, error = p.communicate()
         self.job = int(output.decode('utf-8'))
         return self, p.returncode == 0, error.decode('utf-8')
+
+    def finish(self, ss=False, st=None):
+        self.status = 'finished' if st is None else st
+        self.end = True
+        self.success = ss
 
     def parse(self):
         return {
@@ -153,12 +160,13 @@ def set_job_status():
     """""
     request_data = request.get_json()
     job: Job = jobs[request_data['jobid']]
-    output_filename = request_data['output_filename']
-    logf = f"{PROJECTS}/{job.prj}/jobs/job.{job.id}.log.txt"
-    shutil.copyfile(output_filename, logf)
-    job.status = 'finished'
-    job.end = True
-    job.success = open(logf).read().endswith("TERMINADO_COM_SUCESSO\n")
+    job.finish()
+    try:
+        output_filename = request_data['output_filename']
+        shutil.copyfile(output_filename, job.logf)
+        job.finish(open(job.logf).read().endswith("TERMINADO_COM_SUCESSO\n"))
+    except:
+        print(f"JOB FINISH ERROR: {request_data}", file=sys.stderr)
     return VOID
 
 @app.route("/job_status/<int:id>")
@@ -170,6 +178,9 @@ def get_job_status(id: int):
     p = Popen(["tsp", "-s", str(job.job)], stdout=PIPE, stderr=PIPE)
     output, error = p.communicate()
     job.status = (output.decode('utf-8') + error.decode('utf-8')).strip()
+    ##running, queued, finished, skipped
+    if job.status == 'skipped':
+        job.finish(st = 'skipped')
     return job.parse()
 
 def make_job(proj:str, id:int, args, lock=None):
@@ -187,7 +198,7 @@ def make_job(proj:str, id:int, args, lock=None):
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
 
-def clean(external, allow=lambda f: any([f.startswith(x) for x in ALLOW])):
+def _clean(external, allow):
     try:
         external = external.strip().replace('..', '.')
         assert re.fullmatch(BASIC_STR, external) 
@@ -197,26 +208,30 @@ def clean(external, allow=lambda f: any([f.startswith(x) for x in ALLOW])):
         raise Exception(f"STR INV: {external} FN: {allow}")
     return external
 
+cln_str = lambda e: _clean(e, lambda _: True)
+cln_url = lambda e: _clean(e, lambda f: any([f.startswith(x) for x in ALLOW]))
+cln_input = lambda e: _clean(e, lambda f: f in os.listdir(INPUTS))
+
 @app.route("/show/<proj>/<int:id>/<file>", methods=['POST'])
 def show(proj, id, file): ## salvar texto na pasta results
     assert id >= 0 and proj in projects
     request_data = request.get_json()
-    msg = clean(request_data['msg'], allow=lambda e: True)
+    msg = cln_str(request_data['msg'])
     return make_job(proj, id, [f"{SCRIPTS}/show.sh", PROJECTS, proj, id, file, msg])
 
 @app.route("/copiar/<proj>/<int:id>/<fin>/<fout>")
 def copiar(proj, id, fin, fout): ## copiar do inputs geral para o inputs do projeto
     assert id >= 0 and proj in projects
-    src = clean(fin, lambda f: f in os.listdir(f'{INPUTS}'))
-    dst = clean(fout, lambda _: True)
+    src = cln_input(fin)
+    dst = cln_str(fout)
     return make_job(proj, id, [f"{SCRIPTS}/copiar.sh", PROJECTS, proj, id, src, dst])
 
 @app.route("/baixar/<proj>/<int:id>/<out>/<int:sra>/<int:paired>", methods=['POST'])
 def baixar(proj, id, out, sra, paired): ## baixar no inputs do projeto
     assert id >= 0 and proj in projects
     request_data = request.get_json()
-    url = clean(request_data['url'], lambda _: True) if sra == 1 else clean(request_data['url'])
-    dst = clean(out, lambda _: True)
+    url = cln_url(request_data['url']) if sra == 1 else cln_url(request_data['url'])
+    dst = cln_str(out)
     args = [f"{SCRIPTS}/baixar.sh", PROJECTS, proj, id, url, dst]
     if sra == 1:
         args.append("1")
@@ -227,36 +242,45 @@ def baixar(proj, id, out, sra, paired): ## baixar no inputs do projeto
 @app.route("/unzip/<proj>/<int:id>/<path>/<int:lock>")
 def unzip(proj, id, path, lock: int): ## abrir aquivo ou pasta da pasta no inputs do projeto
     assert id >= 0 and proj in projects
-    src = clean(path, lambda _: True)
+    src = cln_str(path)
     return make_job(proj, id, [f"{SCRIPTS}/zip.sh", PROJECTS, proj, id, src], lock if lock > 0 else None)
 
 @app.route("/zip/<proj>/<int:id>/<path>")
 def zip(proj, id, path): ## comprimir aquivo ou pasta da pasta do inputs do projeto
     assert id >= 0 and proj in projects
-    src = clean(path, lambda _: True)
+    src = cln_str(path)
     return make_job(proj, id, [f"{SCRIPTS}/zip.sh", PROJECTS, proj, id, src, 1])
 
 @app.route("/qinput/<proj>/<int:id>/<fg>/<fa>/<ft>/<fp>/<int:lock>")
 def qinput(proj, id, fg, fa, ft, fp, lock: int): ## validar arquivos de entrada
     assert id >= 0 and proj in projects
-    fg = clean(fg, lambda _: True)
-    fa = clean(fa, lambda _: True)
-    ft = clean(ft, lambda _: True)
-    fp = clean(fp, lambda _: True)
+    fg = cln_str(fg)
+    fa = cln_str(fa)
+    ft = cln_str(ft)
+    fp = cln_str(fp)
     return make_job(proj, id, [f"{SCRIPTS}/qinput.py", PROJECTS, proj, id, fg, fa, ft, fp], lock if lock > 0 else None)
+
+@app.route("/qinput2/<proj>/<int:id>/<fg>/<fa>/<novo_gff>/<fasta_genes>/<int:lock>")
+def qinput2(proj, id, fg, fa, novo_gff, fasta_genes, lock: int): ## validar arquivos de entrada
+    assert id >= 0 and proj in projects
+    fg = cln_str(fg)
+    fa = cln_str(fa)
+    ft = cln_str(novo_gff)
+    fp = cln_str(fasta_genes)
+    return make_job(proj, id, [f"{SCRIPTS}/qinput.sh", PROJECTS, proj, id, fg, fa, ft, fp], lock if lock > 0 else None)
 
 @app.route("/splitx/<proj>/<int:id>/<fg>/<fa>")
 def splitx(proj, id, fg, fa): ## dividir arquivos de entrada
     assert id >= 0 and proj in projects
-    fg = clean(fg, lambda f: f in os.listdir(f'{INPUTS}'))
-    fa = clean(fa, lambda f: f in os.listdir(f'{INPUTS}'))
+    fg = cln_str(fg)
+    fa = cln_str(fa)
     return make_job(proj, id, [f"{SCRIPTS}/splitx.py", PROJECTS, proj, id, fg, fa])
 
 @app.route("/joinx/<proj>/<int:id>/<fg>/<fa>/<int:lock>")
 def joinx(proj, id, fg, fa, lock: int): ## juntar results arquivos de entrada
     assert id >= 0 and proj in projects
-    fg = clean(fg, lambda f: f in os.listdir(f'{INPUTS}'))
-    fa = clean(fa, lambda f: f in os.listdir(f'{INPUTS}'))
+    fg = cln_str(fg)
+    fa = cln_str(fa)
     return make_job(proj, id, [f"{SCRIPTS}/joinx.sh", PROJECTS, proj, id, fg, fa], lock if lock > 0 else None)
 
 @app.route("/holder/<proj>/<int:id>/<int:p1>/<int:p2>/<int:p3>/<int:p4>/<int:p5>/<int:p6>")

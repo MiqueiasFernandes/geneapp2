@@ -12,7 +12,7 @@ class CMD08Holder(CMD_Handler):
         p1, p2, p3 = to_int(command.arg1), to_int(command.arg2), to_int(command.arg3)
         p4, p5, p6 = to_int(command.arg4), to_int(command.arg5), to_int(command.arg6)
         
-        command.tsp = self.job_get(f"{self.GENEAPPSCRIPT_API}/holder/{prj}/{id}/{p1}/{p2}/{p3}/{p4}/{p5}/{p6}")
+        command.tsp = self.job_get(f"holder/{prj}/{id}/{p1}/{p2}/{p3}/{p4}/{p5}/{p6}")
 
         if command.tsp > 0:
             command.status = 'submetido'

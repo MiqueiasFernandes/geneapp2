@@ -17,6 +17,7 @@ from .cmd_handler.CMD05Qinput import CMD05Qinput
 from .cmd_handler.CMD06Splitx import CMD06Splitx
 from .cmd_handler.CMD07Joinx import CMD07Joinx
 from .cmd_handler.CMD08Holder import CMD08Holder
+from .cmd_handler.CMD09Qinput2 import CMD09Qinput2
 
 class CRUD:
     def __init__(self, klass, serializer) -> None:
@@ -118,7 +119,7 @@ def sample(request, pk = None):
     return response
 
 handlers = [CMD01Show(), CMD02Copy(), CMD03Download(), CMD04Unzip(), 
-            CMD05Qinput(), CMD06Splitx(), CMD07Joinx(), CMD08Holder()]
+            CMD05Qinput(), CMD06Splitx(), CMD07Joinx(), CMD08Holder(), CMD09Qinput2()]
 
 crud_commands = CRUD(Command, CommandSerializer)
 
@@ -133,6 +134,7 @@ def process(command: Command):
     if command.status == 'exec':
         command.status = f'Nsubmetido'
        
+        handled = False
         for handler in handlers:
             handled = handler.handle(command)
             if handled:
@@ -154,8 +156,11 @@ def process(command: Command):
             if command.end:
                 command.log, command.out, command.err = get_logs(command.project.path, command.id) 
         except:
+            if command.status == 'skipped':
+                command.err = f"Job skipped because dependence job tsp({command.lock}) raised error"
+            else:
+                command.err = 'Unknown error'
             command.status = 'unknown'
-            command.err = 'Unknown error'
             command.end = True
             command.success = False
    

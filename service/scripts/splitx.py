@@ -10,12 +10,14 @@ MIN_G_SEQ=100
 PROJECTS=sys.argv[1] ## /tmp/geneappdata/projects
 PROJ=sys.argv[2]     ## 2023-12-08_c7f88f0d-f4b6-40ec-9c0e-71da742579c3
 ID=sys.argv[3]       ## 99
+
 INPUTS=f"{PROJECTS}/{PROJ}/inputs/"
 RESULTS=f"{PROJECTS}/{PROJ}/results/"
 open(f"{PROJECTS}/{PROJ}/jobs/jobs.txt", "a").write("S " + ID + " "+ datetime.now(timezone.utc).replace(microsecond=0).astimezone().isoformat()+"\n")
 print(".... SPLITX ....")
 GENOM=INPUTS+sys.argv[4]
 ANOT=INPUTS+sys.argv[5]
+MINS=int(sys.argv[6]) if len(sys.argv) > 6 else 1000000
 
 LOG=f"{PROJECTS}/{PROJ}/jobs/job.{ID}.out.txt"
 ERR=f"{PROJECTS}/{PROJ}/jobs/job.{ID}.err.txt"
@@ -32,13 +34,20 @@ def err(msg):
 
 def divide(fasta, gff, seqs, sufix):
     SeqIO.write([x for x in SeqIO.parse(fasta, "fasta") if x.id in seqs], fasta+sufix, "fasta")
-    with open(gff)as fin:
-        with open(gff+sufix, 'w') as fw:
-            for line in fin:
-                if line.split('\t')[0] in seqs:
-                    fw.write(line)
+    for seq in seqs:
+        s = seq + "\t"
+        with open(gff)as fin:
+            with open(gff+sufix, 'w') as fw:
+                for line in fin:
+                    if line.startswith(s):
+                        fw.write(line)
 
-seqs = sorted([(seq.id, len(seq)) for seq in SeqIO.parse(GENOM, "fasta")], key=lambda e: e[1])
+_seqs = sorted([(seq.id, len(seq)) for seq in SeqIO.parse(GENOM, "fasta")], key=lambda e: e[1])
+seqs = [x for x in _seqs if x[1] > MINS]
+nsqes = [x for x in _seqs if not x[1] in seqs]
+
+if len(nsqes) >0:
+    log(f"Seqs filtered by size min {MINS} => {nsqes}")
 
 if len(seqs) < 5:
     err(f"GENOM HAS FEW SEQS {seqs}!")

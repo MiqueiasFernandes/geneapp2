@@ -9,7 +9,7 @@ class CMD01Show(CMD_Handler):
         prj, id, lock = command.project.path, command.id, command.lock
         file, msg = command.arg1, command.arg2
         
-        command.tsp = self.job_post(f"{self.GENEAPPSCRIPT_API}/show/{prj}/{id}/{file}", {"msg": msg})
+        command.tsp = self.job_post(f"show/{prj}/{id}/{file}", {"msg": msg})
 
         if command.tsp > 0:
             command.status = 'submetido'

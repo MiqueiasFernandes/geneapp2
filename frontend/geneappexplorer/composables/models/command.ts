@@ -49,7 +49,7 @@ class CMD implements ICommand {
     id?: number | undefined;
 
     op: number = 1;
-    lock?: number | undefined;
+    lock = 0;
     status?: string | undefined;
     info?: string = 'bash command';
     meta?: string = 'step 0';
@@ -83,7 +83,7 @@ class CMD implements ICommand {
         return Command.api.create(this);
     }
 
-    wait(id: number) { this.lock = id; return this }
+    wait(c: ICommand) { this.lock = c.tsp || 0; return this }
 
 }
 
@@ -111,17 +111,17 @@ export class CMD_Unzip extends CMD {
 
 export class CMD_Qinput extends CMD {
     op = 5;
-    info = 'Quality control data input files';
+    info = 'Clean data input files';
     genome(file: string) { this.arg1 = file; return this }
     anotattion(file: string) { this.arg2 = file; return this }
-    transcriptome(file: string) { this.arg3 = file; return this }
-    proteome(file: string) { this.arg4 = file; return this }
+    to_genome(file: string) { this.arg3 = file; return this }
+    to_anotation(file: string) { this.arg4 = file; return this }
 
     fill() {
         this.genome('genome.fasta');
         this.anotattion('anotattion.gff3');
-        this.proteome('proteome.faa');
-        this.transcriptome('transcriptome.fna');
+        this.to_genome('genome_clean.fa');
+        this.to_anotation('genes.gff3');
         return this;
     }
 }
@@ -156,8 +156,8 @@ export class CMD_Holder extends CMD {
     op = 8;
     info = 'Holder for jobs finish toghether';
 
-    add(x: number) {
-        const tsp = `${x}`;
+    add(c: ICommand) {
+        const tsp = `${c.tsp}`;
         if(!this.arg1)  {this.arg1 = tsp; return this};
         if(!this.arg2)  {this.arg2 = tsp; return this};
         if(!this.arg3)  {this.arg3 = tsp; return this};
@@ -165,5 +165,23 @@ export class CMD_Holder extends CMD {
         if(!this.arg5)  {this.arg5 = tsp; return this};
         if(!this.arg6)  {this.arg6 = tsp; return this};
         return this
+    }
+}
+
+
+export class CMD_Qinput2 extends CMD {
+    op = 9;
+    info = 'Generate proteome and transcriptome';
+    genome(file: string) { this.arg1 = file; return this }
+    anotattion(file: string) { this.arg2 = file; return this }
+    novo_gff(file: string) { this.arg3 = file; return this }
+    fasta_genes(file: string) { this.arg4 = file; return this }
+
+    fill() {
+        this.genome('genome_clean.fa');
+        this.anotattion('genes.gff3');
+        this.novo_gff('genes.gff3');
+        this.fasta_genes('genes.fa');
+        return this;
     }
 }

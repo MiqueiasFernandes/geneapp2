@@ -56,6 +56,7 @@ class ProjectSerializer(serializers.ModelSerializer):
         
     def create(self, validated_data):
         samples = validated_data.pop('samples')
+        assert len(samples) < 20
         commands = validated_data.pop('commands')
         project = Project.objects.create(**validated_data)
         for sample in samples:

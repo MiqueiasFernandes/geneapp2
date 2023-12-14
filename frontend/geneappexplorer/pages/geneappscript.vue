@@ -1,7 +1,7 @@
 
 <script setup lang="ts">
 import type { FormError, FormSubmitEvent } from '#ui/types'
-import { type IProject, type ISample, Command, CMD_Baixar, CMD_Unzip, CMD_Copiar, CMD_Qinput, CMD_Splitx } from '~/composables';
+import { type IProject, type ISample, Command, CMD_Baixar, CMD_Unzip, CMD_Copiar, CMD_Qinput, CMD_Splitx, CMD_Qinput2 } from '~/composables';
 
 const runtimeConfig = useRuntimeConfig()
 
@@ -205,7 +205,7 @@ async function acompanhar(jobs: any, logs: any, follow: any[], btn1: { value: an
                 const total = cms.length;
                 const term = cms.reduce((a, b) => a + (b.end ? 1 : 0), 0)
                 const ss = cms.reduce((a, b) => a + (b.success ? 1 : 0), 0)
-                const run = cms.filter(x => x.status == "running")
+                const run = cms.filter(x => (!x.end) && (!x.err) && (x.status == "running"))
 
                 if (term < total)
                     jobs.value.info = (run.length > 0 ? run.map(x => x.info).join(", ").substring(0, 30) : 'Server busy') + " ...";
@@ -227,7 +227,7 @@ async function acompanhar(jobs: any, logs: any, follow: any[], btn1: { value: an
                 if (total == term || limit < 0) {
 
                     logs.value = cms.filter(j => j.end && !j.success).map(c => {
-                        var l = `Job [${c.id}]: ${c.info}\n`;
+                        var l = `Job [${c.id} / tsp(${c.tsp})]: ${c.info}\n`;
                         l += `Status ${c.success ? "OK" : "ERR"}: ${c.status}\n`
                         l += "LOG: \n" + c.log + '\n';
                         l += "OUT: \n" + c.out + '\n';
@@ -253,46 +253,27 @@ async function acompanhar(jobs: any, logs: any, follow: any[], btn1: { value: an
 
 async function copiar() {
     btn_baixar.value = false;
-    // criar jobs
     const follow: any[] = [];
 
-    await new CMD_Copiar(project).from(project.anotattion).to('anotattion.gff3').step(3)
-        .enqueue().then(x => {
-            follow.push(x.id);
-            if (zip.value)
-                new CMD_Unzip(project).file('anotattion.gff3').wait(x.tsp || NaN)
-                    .step(3).enqueue().then(x => follow.push(x.id));
-        });
+    const copy = async (a: string, b: string) =>
+        new CMD_Copiar(project).from(a).to(b).step(3)
+            .enqueue().then(x => {
+                follow.push(x.id);
+                if (zip.value)
+                    new CMD_Unzip(project).file(b).wait(x)
+                        .step(3).enqueue().then(x => follow.push(x.id));
+            });
 
-    await new CMD_Copiar(project).from(project.transcriptome).to('transcriptome.fna').step(3)
-        .enqueue().then(x => {
-            follow.push(x.id);
-            if (zip.value)
-                new CMD_Unzip(project).file('transcriptome.fna').wait(x.tsp || NaN)
-                    .step(3).enqueue().then(x => follow.push(x.id));
-        });
-
-    await new CMD_Copiar(project).from(project.genome).to('genome.fasta').step(3)
-        .enqueue().then(x => {
-            follow.push(x.id);
-            if (zip.value)
-                new CMD_Unzip(project).file('genome.fasta').wait(x.tsp || NaN)
-                    .step(3).enqueue().then(x => follow.push(x.id));
-        });
-
-    await new CMD_Copiar(project).from(project.proteome).to('proteome.faa').step(3)
-        .enqueue().then(x => {
-            follow.push(x.id);
-            if (zip.value)
-                new CMD_Unzip(project).file('proteome.faa').wait(x.tsp || NaN)
-                    .step(3).enqueue().then(x => follow.push(x.id));
-
-        });
-
-    project.samples.forEach(sample => new CMD_Copiar(project)
-        .from(sample.acession)
-        .to(sample.name)
-        .step(3).enqueue().then(x => follow.push(x.id)))
+    await Promise.all([
+        copy(project.anotattion, 'anotattion.gff3'),
+        copy(project.transcriptome, 'transcriptome.fna'),
+        copy(project.genome, 'genome.fasta'),
+        copy(project.proteome, 'proteome.faa'),
+        project.samples.map(sample => new CMD_Copiar(project)
+            .from(sample.acession)
+            .to(sample.name)
+            .step(3).enqueue().then(x => follow.push(x.id)))
+    ])
 
     acompanhar(jobs3, logs3, follow, btn_baixar, btn_baixar_l, hab_prc);
 
@@ -300,46 +281,29 @@ async function copiar() {
 
 async function baixar() {
     btn_baixar.value = false;
-    // criar jobs
     const follow: any[] = [];
 
-    await new CMD_Baixar(project).from(project.anotattion).to('anotattion.gff3').step(3)
-        .enqueue().then(x => {
-            follow.push(x.id);
-            if (zip.value)
-                new CMD_Unzip(project).file('anotattion.gff3').wait(x.tsp || NaN)
-                    .step(3).enqueue().then(x => follow.push(x.id));
-        });
+    const download = async (a: string, b: string) =>
+        new CMD_Baixar(project).from(a).to(b).step(3)
+            .enqueue().then(x => {
+                follow.push(x.id);
+                if (zip.value)
+                    new CMD_Unzip(project).file(b).wait(x)
+                        .step(3).enqueue().then(x => follow.push(x.id));
+            });
 
-    await new CMD_Baixar(project).from(project.transcriptome).to('transcriptome.fna').step(3)
-        .enqueue().then(x => {
-            follow.push(x.id);
-            if (zip.value)
-                new CMD_Unzip(project).file('transcriptome.fna').wait(x.tsp || NaN)
-                    .step(3).enqueue().then(x => follow.push(x.id));
-        });
-
-    await new CMD_Baixar(project).from(project.genome).to('genome.fasta').step(3)
-        .enqueue().then(x => {
-            follow.push(x.id);
-            if (zip.value)
-                new CMD_Unzip(project).file('genome.fasta').wait(x.tsp || NaN)
-                    .step(3).enqueue().then(x => follow.push(x.id));
-        });
-
-    await new CMD_Baixar(project).from(project.proteome).to('proteome.faa').step(3)
-        .enqueue().then(x => {
-            follow.push(x.id);
-            if (zip.value)
-                new CMD_Unzip(project).file('proteome.faa').wait(x.tsp || NaN)
-                    .step(3).enqueue().then(x => follow.push(x.id));
-        });
-
-    project.samples.forEach(async sample => await new CMD_Baixar(project)
-        .from(sample.acession)
-        .to(sample.name)
-        .sra()
-        .step(3).enqueue().then(x => follow.push(x.id)))
+    await Promise.all([
+        download(project.anotattion, 'anotattion.gff3'),
+        download(project.transcriptome, 'transcriptome.fna'),
+        download(project.genome, 'genome.fasta'),
+        download(project.proteome, 'proteome.faa'),
+        project.samples.map(sample => new CMD_Baixar(project)
+            .from(sample.acession)
+            .to(sample.name)
+            .sra()
+            .step(3).enqueue()
+            .then(x => follow.push(x.id)))
+    ])
 
     acompanhar(jobs3, logs3, follow, btn_baixar, btn_baixar_l, hab_prc);
 
@@ -367,35 +331,41 @@ function hab_prc() {
 async function process() {
     btn_baixar4.value = !(btn_baixar_l4.value = true);
     const follow: any[] = [];
-    const hold: Promise<ICommand>[] = [];
 
-    await new CMD_Splitx(project).fill().step(4).enqueue().then(x => {
-        follow.push(x.id);
-        for (let I = 1; I <= 5; I++) {
-            hold.push(new CMD_Qinput(project).fill()
-                .genome("genome.fasta_pt" + I)
-                .anotattion("anotattion.gff3_pt" + I)
-                .step(4)
-                .wait(x.tsp || NaN).enqueue().then(x => { follow.push(x.id); return x }));
-        }
-    });
-    await Promise.all(hold);
-    console.log(hold)
+    const stp1 = await new CMD_Qinput(project).fill().step(4).enqueue()
+    follow.push(stp1.id);
+       
+    await new CMD_Qinput2(project).fill().step(4).wait(stp1).enqueue().then(
+        x => follow.push(x.id)
+    )
 
-    await new CMD_Holder(project)
-        .add((await hold[0]).tsp || NaN)
-        .add((await hold[1]).tsp || NaN)
-        .add((await hold[2]).tsp || NaN)
-        .add((await hold[3]).tsp || NaN)
-        .add((await hold[4]).tsp || NaN)
-        .step(4).enqueue().then(x => {
-            follow.push(x.id);
-            new CMD_Joinx(project)
-                .fill().wait(x.id || NaN)
-                .step(4).enqueue().then(x => follow.push(x.id));
-        });
+    // const hold: Promise<ICommand>[] = [];
 
-    //await new CMD_Qinput(project).fill().step(4).enqueue().then(x => follow.push(x.id));
+    // await new CMD_Splitx(project).fill().step(4).enqueue().then(x => {
+    //     follow.push(x.id);
+    //     for (let I = 1; I <= 5; I++) {
+    //         hold.push(new CMD_Qinput(project).fill()
+    //             .genome("genome.fasta_pt" + I)
+    //             .anotattion("anotattion.gff3_pt" + I).reorg(I * 1000)
+    //             .step(4)
+    //             .wait(x).enqueue().then(x => { follow.push(x.id); return x }));
+    //     }
+    // });
+    // await Promise.all(hold);
+
+    // await new CMD_Holder(project)
+    //     .add(await hold[0])
+    //     .add(await hold[1])
+    //     .add(await hold[2])
+    //     .add(await hold[3])
+    //     .add(await hold[4])
+    //     .step(4).enqueue().then(x => {
+    //         follow.push(x.id);
+    //         new CMD_Joinx(project)
+    //             .fill().wait(x)
+    //             .step(4).enqueue().then(x => follow.push(x.id));
+    //     });
+
     acompanhar(jobs4, logs4, follow, btn_baixar4, btn_baixar_l4, hab_exp);
 }
 
@@ -696,10 +666,8 @@ function hab_exp() {
                     <UButton v-if="logs3 !== ''" @click="show_logs = !show_logs" icon="i-heroicons-eye" class="my-4">Show
                         logs</UButton>
 
-                    <UTextarea v-if="show_logs" disabled resize color="rose" variant="outline" v-model="logs3" :rows="10"
-                        size="md" />
-
-
+                    <UTextarea class="text-sm tracking-tight leading-none break-all" v-if="show_logs" disabled resize
+                        color="rose" variant="outline" v-model="logs3" :rows="10" size="md" />
 
                 </div>
             </template>
@@ -731,8 +699,8 @@ function hab_exp() {
                 <UButton v-if="logs4 !== ''" @click="show_logs4 = !show_logs4" icon="i-heroicons-eye" class="my-4">Show
                     logs</UButton>
 
-                <UTextarea v-if="show_logs4" disabled resize color="rose" variant="outline" v-model="logs4" :rows="10"
-                    size="md" />
+                <UTextarea class="text-sm tracking-tight leading-none break-all" v-if="show_logs4" disabled resize
+                    color="rose" variant="outline" v-model="logs4" :rows="10" size="md" />
 
             </template>
         </UAccordion>
