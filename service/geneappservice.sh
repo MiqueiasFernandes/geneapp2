@@ -4,6 +4,7 @@ set -e
 source /flask_env/bin/activate
 
 export DATA_DIR=/tmp/geneappdata
+export PROJECTS=$DATA_DIR/projects
 export LIMIT="${SERVICE_LIMIT:-5}"
 
 export TS_ONFINISH=/app/scripts/_jobend.sh
@@ -20,8 +21,8 @@ export FLASK_API="${FLASK_API:-localhost:9000}"
 ( tsp || ([ ! -d "$TMPDIR" ] && mkdir -p $TMPDIR && tsp) ) > /dev/null
 
 if [ "$1" = 'flask' ]; then
+    [ ! -d "$PROJECTS" ] && mkdir -p $PROJECTS
     [ "$FLASK_ENV" = "development" ] && DBG="--debug"
-
 fi
 
 exec "$@" $DBG
