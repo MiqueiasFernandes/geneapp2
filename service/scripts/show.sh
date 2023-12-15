@@ -10,7 +10,7 @@ ERR=$PROJECTS/$PROJ/jobs/job.$ID.err.txt
 echo S $ID `date -Iseconds` >> "$PROJECTS/$PROJ/jobs/jobs.txt"
 
 echo show $F '=>' $MSG
-echo $MSG > $PROJECTS/$PROJ/results/$F
+mv $PROJECTS/inputs/$MSG $PROJECTS/$PROJ/results/$F
 touch $LOG
 touch $ERR
 echo TERMINADO_COM_SUCESSO

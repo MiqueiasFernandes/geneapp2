@@ -1,55 +1,13 @@
 
 <script setup lang="ts">
 import type { FormError, FormSubmitEvent } from '#ui/types'
-import { type IProject, type ISample, Command, CMD_Baixar, CMD_Unzip, CMD_Copiar, CMD_Qinput, CMD_Splitx, CMD_Qinput2 } from '~/composables';
-
+import { type ISample, CMD_Baixar, CMD_Unzip, CMD_Copiar, CMD_Qinput, CMD_Qinput2, Project_ARABDOPSIS, Project_FUNGI, Project_HUMAN } from '~/composables';
+import LocalFile from '../utils/file';
 const toast = useToast()
-const LBS = ['SHORT_PAIRED', 'SHORT_SINGLE', 'LONG_SINGLE']
-const example_fung: IProject = {
-    name: "Project EXPPATOG",
-    control: "WILD",
-    treatment: "TREATED",
-    organism: "Candida albicans",
-    online: true, rmats_readLength: 50,
-    genome: "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_genomic.fna.gz",
-    anotattion: "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_genomic.gff.gz",
-    proteome: "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_protein.faa.gz",
-    transcriptome: "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_rna.fna.gz",
-    library: LBS[1],
-    threads: 1, ram: 2, disk: 10, fast: false, qvalue: .05, psi: .1,
-    samples: [
-        // { acession: "SRR2513862", name: "ctrl1", group: 'WILD' },
-        // { acession: "SRR2513863", name: "ctrl2", group: 'WILD' },
-        // { acession: "SRR2513864", name: "ctrl3", group: 'WILD' },
-        // { acession: "SRR2513867", name: "trt1", group: 'TREATED' },
-        // { acession: "SRR2513868", name: "trt2", group: 'TREATED' },
-        // { acession: "SRR2513869", name: "trt3", group: 'TREATED' }
-    ],
-    commands: [Command.model()]
-}
-
-const example_arab: IProject = Object.assign(Object.assign({}, example_fung), {
-    name: "Project Arab", organism: "Arabidopsis",
-    genome: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/735/GCF_000001735.4_TAIR10.1/GCF_000001735.4_TAIR10.1_genomic.fna.gz',
-    anotattion: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/735/GCF_000001735.4_TAIR10.1/GCF_000001735.4_TAIR10.1_genomic.gff.gz',
-    proteome: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/735/GCF_000001735.4_TAIR10.1/GCF_000001735.4_TAIR10.1_protein.faa.gz',
-    transcriptome: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/735/GCF_000001735.4_TAIR10.1/GCF_000001735.4_TAIR10.1_rna.fna.gz',
-    samples: []
-})
-
-const example_hm: IProject = Object.assign(Object.assign({}, example_fung), {
-    name: "Project Human", organism: "Humano",
-    genome: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_genomic.fna.gz',
-    anotattion: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_genomic.gff.gz',
-    proteome: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_protein.faa.gz',
-    transcriptome: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_rna.fna.gz',
-    samples: []
-})
 
 
 const project = reactive(Project.model())
 const load_project = ref()
-const set_example = (x: any) => Object.assign(project, x == 1 ? example_hm : x == 2 ? example_arab : example_fung)
 const new_smp = (t: string) => `${t}${project.samples.filter(x => x.group === t).length + 1}`
 const terms = reactive({ a: false, b: false, c: false })
 const projects = await Project.api.list();
@@ -64,12 +22,20 @@ const jobs3 = ref({ total: 0, wait: 0, error: 0, success: 0, ended: 0, info: "",
 const logs3 = ref("")
 const show_logs = ref(false)
 
-
 const btn_baixar4 = ref(false);
 const btn_baixar_l4 = ref(false);
 const jobs4 = ref({ total: 0, wait: 0, error: 0, success: 0, ended: 0, info: "", dtime: "" })
 const logs4 = ref("")
 const show_logs4 = ref(false)
+
+
+const itemsex = [
+    [Project_HUMAN, Project_FUNGI, Project_ARABDOPSIS].map(e => ({
+        label: e.name,
+        ///shortcuts: [e.],
+        click: () => Object.assign(project, e)
+    }))
+]
 
 const items = reactive([{
     label: '1. Terms and conditions',
@@ -151,6 +117,7 @@ const validate = (state: any): FormError[] => {
 async function onSubmit(event: FormSubmitEvent<any>) {
     salvando.value = true;
     project.status = 3;
+    project.commands = [Command.model("geneapp.yaml", Project.to_yaml(project))]
     Project.api.create(project)
         .then(() => {
             items[2].disabled = false;
@@ -332,7 +299,7 @@ async function process() {
 
     const stp1 = await new CMD_Qinput(project).fill().step(4).enqueue()
     follow.push(stp1.id);
-       
+
     await new CMD_Qinput2(project).fill().step(4).wait(stp1).enqueue().then(
         x => follow.push(x.id)
     )
@@ -371,6 +338,16 @@ function hab_exp() {
 
 }
 
+function load() {
+    LocalFile.importData((data) => {
+        btn_baixar_l.value = true;
+        const nv = Project.from_yaml(data);
+        Object.assign(project, nv);
+        alert(`The project ${project.name} was loaded.`);
+        btn_baixar_l.value = false;
+    });
+}
+
 </script>
 <template>
     <UModal v-model="isOpen">
@@ -405,7 +382,7 @@ function hab_exp() {
             :search-attributes="['name', 'id', 'organism']" :disabled="sel" />
         <UButton icon="i-heroicons-arrow-down-on-square-stack" @click="set_prj" :disabled="sel || !load_project">
             Load project</UButton>
-        <UButton icon="i-heroicons-arrow-top-right-on-square" class="mx-2" :to="`projects/${project.path}/results`"
+        <UButton icon="i-heroicons-arrow-top-right-on-square" class="mx-2" :to="`/projects/${project.path}/results`"
             target="_blank" v-if="project.path">
             Go to project</UButton>
     </div>
@@ -596,18 +573,18 @@ function hab_exp() {
                                     :disabled="project.status !== 2">
                                     Save project
                                 </UButton>
-                                <UButton icon="i-heroicons-bolt" color="emerald" @click="set_example(1)"
-                                    :disabled="project.status !== 2">
-                                    Load H
+                                <UButton v-if="sel" icon="i-heroicons-arrow-down-tray" color="emerald"
+                                    :to="`/projects/${project.path}/results/geneapp.yaml`" target="_blank" download>
+                                    Download project
                                 </UButton>
-                                <UButton icon="i-heroicons-bolt" color="emerald" @click="set_example(2)"
+                                <UButton v-else icon="i-heroicons-arrow-down-on-square" color="emerald" @click="load"
                                     :disabled="project.status !== 2">
-                                    Load A
+                                    Load project
                                 </UButton>
-                                <UButton icon="i-heroicons-bolt" color="emerald" @click="set_example(3)"
-                                    :disabled="project.status !== 2">
-                                    Load F
-                                </UButton>
+                                <UDropdown :items="itemsex" :popper="{ placement: 'bottom-start' }">
+                                    <UButton :disabled="project.status !== 2" color="emerald" label="Example"
+                                        icon="i-heroicons-bolt" />
+                                </UDropdown>
                             </div>
                         </template>
                     </UCard>
@@ -658,8 +635,6 @@ function hab_exp() {
                             icon="i-heroicons-exclamation-triangle" />
                         <UMeter :value="jobs3.wait" color="gray" label="Runing" icon="i-heroicons-clock" />
                     </UMeterGroup>
-
-
 
                     <UButton v-if="logs3 !== ''" @click="show_logs = !show_logs" icon="i-heroicons-eye" class="my-4">Show
                         logs</UButton>

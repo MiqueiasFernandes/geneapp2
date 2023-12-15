@@ -7,8 +7,7 @@ class CMD01Show(CMD_Handler):
         
     def run(self, command):
         prj, id, lock = command.project.path, command.id, command.lock
-        file, msg = command.arg1, command.arg2
-        
+        file, msg = command.arg1, command.payload
         command.tsp = self.job_post(f"show/{prj}/{id}/{file}", {"msg": msg})
 
         if command.tsp > 0:

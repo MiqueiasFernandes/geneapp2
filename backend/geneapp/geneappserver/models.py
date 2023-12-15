@@ -31,6 +31,8 @@ class Command(models.Model):
     arg7=models.CharField(max_length=200, blank=True, null=True)
     arg8=models.CharField(max_length=200, blank=True, null=True)
     arg9=models.CharField(max_length=200, blank=True, null=True)
+
+    payload=models.CharField(max_length=9999, blank=True, null=True)
     
     end=models.BooleanField(default=False)
     status=models.CharField(max_length=100, blank=True, null=True)

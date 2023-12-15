@@ -11,6 +11,7 @@ export interface ICommand extends IModel {
     created_at?: string;
     started_at?: string;
     ended_at?: string;
+    payload?: string;
 
     info?: string;
     meta?: string;
@@ -38,8 +39,8 @@ export interface ICommand extends IModel {
 export class Command extends Model<ICommand> {
     public static api = new Command(API);
 
-    public static model = () => ({
-        op: 1, arg1: 'welcome.txt', arg2: 'projeto_criado_com_sucesso', status: 'exec'
+    public static model = (a?: string, b?: string) => ({
+        op: 1, arg1: a || 'welcome.txt', payload: b || 'projeto_criado_com_sucesso', status: 'exec'
     } as ICommand)
 }
 
@@ -153,12 +154,12 @@ export class CMD_Holder extends CMD {
 
     add(c: ICommand) {
         const tsp = `${c.tsp}`;
-        if(!this.arg1)  {this.arg1 = tsp; return this};
-        if(!this.arg2)  {this.arg2 = tsp; return this};
-        if(!this.arg3)  {this.arg3 = tsp; return this};
-        if(!this.arg4)  {this.arg4 = tsp; return this};
-        if(!this.arg5)  {this.arg5 = tsp; return this};
-        if(!this.arg6)  {this.arg6 = tsp; return this};
+        if (!this.arg1) { this.arg1 = tsp; return this };
+        if (!this.arg2) { this.arg2 = tsp; return this };
+        if (!this.arg3) { this.arg3 = tsp; return this };
+        if (!this.arg4) { this.arg4 = tsp; return this };
+        if (!this.arg5) { this.arg5 = tsp; return this };
+        if (!this.arg6) { this.arg6 = tsp; return this };
         return this
     }
 }

@@ -227,7 +227,8 @@ cln_input = lambda e: _clean(e, lambda f: f in os.listdir(INPUTS))
 def show(proj, id, file): ## salvar texto na pasta results
     assert id >= 0 and proj in projects
     request_data = request.get_json()
-    msg = cln_str(request_data['msg'])
+    msg = f'msg.{id}.txt'
+    open(f'{INPUTS}/{msg}', 'w').write(request_data['msg'])
     return make_job(proj, id, [f"{SCRIPTS}/show.sh", PROJECTS, proj, id, file, msg])
 
 @app.route("/copiar/<proj>/<int:id>/<fin>/<fout>")
