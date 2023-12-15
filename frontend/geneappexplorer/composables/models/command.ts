@@ -54,11 +54,6 @@ class CMD implements ICommand {
     info?: string = 'bash command';
     meta?: string = 'step 0';
 
-    // success?: boolean | undefined;
-    // end?: string | undefined;
-    // out?: string | undefined;
-    // log?: string | undefined;
-    // err?: string | undefined;
     arg1?: string | undefined;
     arg2?: string | undefined;
     arg3?: string | undefined;
@@ -167,7 +162,6 @@ export class CMD_Holder extends CMD {
         return this
     }
 }
-
 
 export class CMD_Qinput2 extends CMD {
     op = 9;

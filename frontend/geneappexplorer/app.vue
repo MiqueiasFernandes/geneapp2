@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { profile } from './utils/env';
 
-const runtimeConfig = useRuntimeConfig()
 
 const paginas = [
   { nome: 'Guide', href: '/guide' },
@@ -10,6 +10,18 @@ const paginas = [
   { nome: 'About', href: '/about' },
 ]
 
+console.log(`
+
+               ....  FRONTEND  .....   ${profile()}
+      ██████╗ ███████╗███╗   ██╗███████╗ █████╗ ██████╗ ██████╗ 
+     ██╔════╝ ██╔════╝████╗  ██║██╔════╝██╔══██╗██╔══██╗██╔══██╗
+     ██║  ███╗█████╗  ██╔██╗ ██║█████╗  ███████║██████╔╝██████╔╝
+     ██║   ██║██╔══╝  ██║╚██╗██║██╔══╝  ██╔══██║██╔═══╝ ██╔═══╝ 
+     ╚██████╔╝███████╗██║ ╚████║███████╗██║  ██║██║     ██║     
+      ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝     
+                   version 2.0 2023 mikeias.net   
+
+`)
 
 </script>
 
@@ -32,7 +44,7 @@ const paginas = [
             </div>
           </div>
           <div class="w-full right-0 flex items-center justify-end">
-            <UBadge color="amber" variant="solid" label="DEV" v-if="runtimeConfig.public.DEV" />
+            <UBadge color="amber" variant="solid" label="DEV" v-if="is_dev()" />
           </div>
         </div>
       </div>

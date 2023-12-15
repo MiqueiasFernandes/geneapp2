@@ -4,3 +4,4 @@ backend/django_env/
 .DS_Store
 data/
 backend/geneapp/db.sqlite3
+service/__**

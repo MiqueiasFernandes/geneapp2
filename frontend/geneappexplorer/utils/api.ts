@@ -1,12 +1,14 @@
 // GLOBAL GENEAPP FRONTEND CONFIGURATIONS 
 
+import { geneapp_api } from "./env";
+
 export interface IModel {
     id?: number;
 }
 
 export default class Model<T extends IModel> {
 
-    private $fetch = $fetch.create({ baseURL: String(useRuntimeConfig().public.API) })
+    private $fetch = $fetch.create({ baseURL: geneapp_api() })
 
     constructor(private href: string) { }
 

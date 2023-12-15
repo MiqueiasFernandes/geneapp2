@@ -1,20 +1,27 @@
-#!/bin/sh
+#!/usr/bin/env bash
+set -e
 
-HANDLE=
-[ "$#" -eq 0 ] && HANDLE=1 && tsp
-[ "$#" -eq 1 ] && HANDLE=1 && tsp -s $1
+source /flask_env/bin/activate
 
-## programa chamdo pelo TSP quando o job finalizar
-## tsp sleep 5 > jobid
+export DATA_DIR=/tmp/geneappdata
+export LIMIT="${SERVICE_LIMIT:-5}"
 
-[ "$#" -eq 4 ] && HANDLE=1 && \
-  curl \
-    --header "Content-Type: application/json" \
-    --data "{\"jobid\":$1,\"output_filename\":\"$3\"}" \
-    -X POST http://localhost:9000/job_status
-  
-# -E Keep stderr apart, in a name like the output file, but adding '.e'.
-# -L <lab> name this task with a label, to be distinguished on listing.
-# -N <nu m> number of slots required by the job (1 default).
+export TS_ONFINISH=/app/scripts/_jobend.sh
+export TS_SLOTS="${SERVICE_JOBS:-2}"
+export TMPDIR=/tmp ####$DATA_DIR/jobs
+export TS_SAVELIST=$DATA_DIR/tsp.jobs.txt
 
-[ $HANDLE ] && exit || echo Usage: ./geneappservice.sh OR ./geneappservice.sh job_id
+export FLASK_APP=geneappscript.py
+export FLASK_ENV="${FLASK_PROF:-development}"
+export FLASK_RUN_HOST="${FLASK_HOST:-0.0.0.0}"
+export FLASK_RUN_PORT="${FLASK_PORT:-9000}"
+export FLASK_API="${FLASK_API:-localhost:9000}"
+
+( tsp || ([ ! -d "$TMPDIR" ] && mkdir -p $TMPDIR && tsp) ) > /dev/null
+
+if [ "$1" = 'flask' ]; then
+    [ "$FLASK_ENV" = "development" ] && DBG="--debug"
+
+fi
+
+exec "$@" $DBG

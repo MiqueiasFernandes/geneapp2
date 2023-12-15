@@ -7,21 +7,25 @@ import shutil
 from datetime import datetime
 from subprocess import Popen, PIPE
 
-LOCAL="/tmp/geneappdata"
+LOCAL=os.environ.get("DATA_DIR")
+PROF=os.environ.get("FLASK_ENV")
+LIMIT=int(os.environ.get("LIMIT", "0"))
+SLOTS=int(os.environ.get('TS_SLOTS', "0"))
+
+assert LOCAL != "" and LIMIT > 0 and SLOTS > 0
+
 PROJECTS=LOCAL+'/projects'
 SCRIPTS='/app/scripts'
 INPUTS=PROJECTS+'/inputs'
 VOID=('', 204)
-LIMIT=10
 ALLOW = ['http://ftp.ncbi.nlm.nih.gov/', 'https://ftp.ncbi.nlm.nih.gov/']
 BASIC_STR = re.compile(r"^[A-Za-z0-9@ ,:/_.-]{4,200}$")
-SLOTS=os.environ.get('TS_SLOTS', "1")
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 100000000
 
 print(f"""
-starting GeneAPPSERVICE {LOCAL} => {datetime.today().strftime('%Y-%m-%d %HH%M')} [{LIMIT} / {SLOTS}]....
+         .....  SERVICE [{LIMIT} / {SLOTS}] => {PROF}  ....
       ██████╗ ███████╗███╗   ██╗███████╗ █████╗ ██████╗ ██████╗ 
      ██╔════╝ ██╔════╝████╗  ██║██╔════╝██╔══██╗██╔══██╗██╔══██╗
      ██║  ███╗█████╗  ██╔██╗ ██║█████╗  ███████║██████╔╝██████╔╝
@@ -45,21 +49,26 @@ def root():
 @app.route("/status")
 def server():
     store = 'store is ok.'
-    tsp = "tsp is ok."
+    tsp = "tsp is NOT ok."
     try:
         if not os.path.isdir(INPUTS):
             os.makedirs(INPUTS)
-        Popen(["tsp", "-S", SLOTS], stdout=PIPE, stderr=PIPE)
+        Popen(["tsp", "-S", str(SLOTS)], stdout=PIPE, stderr=PIPE)
         p = Popen(["tsp", "-S"], stdout=PIPE, stderr=PIPE)
         output, _ = p.communicate()
-        slots = int(output.decode('utf-8'))
-        if slots > 0:
-            tsp = f"tsp has {slots} slots"
+        if int(output.decode('utf-8')) == SLOTS:
+            tsp = f"tsp has {SLOTS} slots"
         else:
             tsp = "error in tsp."
     except:
         store = 'ERROR in store.'
-    return {"store": store, "paths": [PROJECTS, INPUTS], "tsp": tsp, "projects": os.listdir(PROJECTS)}
+    return {
+        "store": store, 
+        "paths": [PROJECTS, INPUTS], 
+        "tsp": tsp, 
+        "projects": os.listdir(PROJECTS),
+        "env":[SLOTS, LIMIT]
+    }
 
 
 ## ## ## PROJECT CONTROL
@@ -72,7 +81,7 @@ projects = [x for x in os.listdir(PROJECTS) if x.startswith("geneapp@")]
 
 @app.route("/criar_projeto")
 def criar_projeto():
-    assert len(os.listdir(PROJECTS)) < LIMIT
+    assert len([x for x in os.listdir(PROJECTS) if x.startswith("geneapp@")]) < LIMIT
     id = str(uuid.uuid4())
     local = datetime.today().strftime("%Y-%m-%d")
     proj = f'geneapp@{local}_{id}'
@@ -104,7 +113,7 @@ class Job:
         self.id = int(id)  ### id do django
         self.args = list(map(str,args))
         if self.args[0].endswith(".py"):
-            self.args.insert(0, "/app/scripts/py" )
+            self.args.insert(0, "/app/scripts/_py" )
         self.status = 'created'
         self.job = None ### id do tsp
         self.end = False

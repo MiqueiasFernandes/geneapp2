@@ -1,13 +1,11 @@
 from ..models import Command
 import requests
-import os
-from ..geneappscript import GENEAPPSCRIPT_API, LOCAL, PROJECTS
+from geneapp.env import ENV_GENEAPP_SERVICE_API
 
 class CMD_Handler:
 
     def __init__(self, op) -> None:
         self.op = op
-        self.GENEAPPSCRIPT_API = GENEAPPSCRIPT_API
 
     def handle(self, command):
         if (command.op == self.op):
@@ -19,7 +17,7 @@ class CMD_Handler:
     
     def job_get(self, url):
         try:
-            resp = requests.get(f"{GENEAPPSCRIPT_API}/{url}")
+            resp = requests.get(f"{ENV_GENEAPP_SERVICE_API}/{url}")
             json = resp.json()
             return json['job']['job'] if json['success'] else 0
         except:
@@ -27,7 +25,7 @@ class CMD_Handler:
 
     def job_post(self, url, json):
         try:
-            resp = requests.post(f"{GENEAPPSCRIPT_API}/{url}", json=json)
+            resp = requests.post(f"{ENV_GENEAPP_SERVICE_API}/{url}", json=json)
             json = resp.json()
             return json['job']['job'] if json['success'] else 0
         except:

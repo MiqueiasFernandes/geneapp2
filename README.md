@@ -31,7 +31,7 @@
   git clone ....
   configurar variaveis
   cd geneapp2 && mkdir data/projects
-  docker compose down && docker compose build && docker compose up -d && docker compose logs
+  docker compose down && docker compose build && docker compose --env-file profile.env up -d && docker compose logs
 
 #########   licenca  #########  
  - o geneapp e seus modulos sao de propriedade registrada da ufmg e ufv

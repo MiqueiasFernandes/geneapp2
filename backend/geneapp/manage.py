@@ -2,7 +2,18 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+from geneapp.env import ENV_PROF, ENV_DJANGO_RUNNING, ENV_DEBUG
 
+def show_banner():
+    print(f"""
+               .............  BACKEND ........ [ {ENV_PROF} {'DEBUG' if ENV_DEBUG else ''} ]
+      ██████╗ ███████╗███╗   ██╗███████╗ █████╗ ██████╗ ██████╗ 
+     ██╔════╝ ██╔════╝████╗  ██║██╔════╝██╔══██╗██╔══██╗██╔══██╗
+     ██║  ███╗█████╗  ██╔██╗ ██║█████╗  ███████║██████╔╝██████╔╝
+     ██║   ██║██╔══╝  ██║╚██╗██║██╔══╝  ██╔══██║██╔═══╝ ██╔═══╝ 
+     ╚██████╔╝███████╗██║ ╚████║███████╗██║  ██║██║     ██║     
+      ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝     
+                   version 2.0 2023 mikeias.net""")
 
 def main():
     """Run administrative tasks."""
@@ -16,16 +27,9 @@ def main():
             "forget to activate a virtual environment?"
         ) from exc
     
-    print(f""" 
-starting GeneAPPSERVER PROFILE : {os.environ.get('DJANGO_PROF', 'DEV')}....
-      ██████╗ ███████╗███╗   ██╗███████╗ █████╗ ██████╗ ██████╗ 
-     ██╔════╝ ██╔════╝████╗  ██║██╔════╝██╔══██╗██╔══██╗██╔══██╗
-     ██║  ███╗█████╗  ██╔██╗ ██║█████╗  ███████║██████╔╝██████╔╝
-     ██║   ██║██╔══╝  ██║╚██╗██║██╔══╝  ██╔══██║██╔═══╝ ██╔═══╝ 
-     ╚██████╔╝███████╗██║ ╚████║███████╗██║  ██║██║     ██║     
-      ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝     
-                   version 2.0 2023 mikeias.net
-    """)
+    if ENV_DJANGO_RUNNING:
+        show_banner()
+
     execute_from_command_line(sys.argv)
 
 

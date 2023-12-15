@@ -3,8 +3,6 @@
 import type { FormError, FormSubmitEvent } from '#ui/types'
 import { type IProject, type ISample, Command, CMD_Baixar, CMD_Unzip, CMD_Copiar, CMD_Qinput, CMD_Splitx, CMD_Qinput2 } from '~/composables';
 
-const runtimeConfig = useRuntimeConfig()
-
 const toast = useToast()
 const LBS = ['SHORT_PAIRED', 'SHORT_SINGLE', 'LONG_SINGLE']
 const example_fung: IProject = {
@@ -570,16 +568,16 @@ function hab_exp() {
                             <div class="text-center w-1/3">
                                 <div class=" border-solid border-2 border-indigo-100 rounded-md p-4">
                                     <UFormGroup label="CPU" :hint="`${project.threads}`">
-                                        <URange :min="1" :max="runtimeConfig.public.CPU" v-model="project.threads"
-                                            :disabled="project.status !== 2" />
+                                        <URange :min="1" :max="99999" v-model="project.threads"
+                                            :disabled="true || project.status !== 2" />
                                     </UFormGroup>
                                     <UFormGroup label="RAM" :hint="`${project.ram}`" class="mt-6">
-                                        <URange :min="1" :max="runtimeConfig.public.RAM" v-model="project.ram"
-                                            :disabled="project.status !== 2" />
+                                        <URange :min="1" :max="999999999" v-model="project.ram"
+                                            :disabled="true || project.status !== 2" />
                                     </UFormGroup>
                                     <UFormGroup label="Disk" :hint="`${project.disk}`" class="mt-6">
-                                        <URange :min="1" :max="runtimeConfig.public.DISK" v-model="project.disk"
-                                            :disabled="project.status !== 2" />
+                                        <URange :min="1" :max="9999999" v-model="project.disk"
+                                            :disabled="true || project.status !== 2" />
                                     </UFormGroup>
                                 </div>
                             </div>

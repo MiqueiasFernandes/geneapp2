@@ -11,10 +11,8 @@ export default defineNuxtConfig({
   ],
   runtimeConfig: {
     public: {
-      DEV: true,
-      PRD: false,
-      API: 'http://localhost:8000/api',
-      CPU: 1, RAM: 2, DISK: 10
+      PROFILE: "DEV",
+      API: 'http://localhost:8000/api'
     }
   }
 })
