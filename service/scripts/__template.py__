@@ -1,0 +1,38 @@
+#!/bin/python3
+import sys
+from pathlib import Path
+from datetime import datetime, timezone
+
+PROJECTS=sys.argv[1] ## /tmp/geneappdata/projects
+PROJ=sys.argv[2]     ## 2023-12-08_c7f88f0d-f4b6-40ec-9c0e-71da742579c3
+ID=sys.argv[3]       ## 99
+INPUTS=f"{PROJECTS}/{PROJ}/inputs/"
+RESULTS=f"{PROJECTS}/{PROJ}/results/"
+__time__ = lambda: datetime.now(timezone.utc).replace(microsecond=0).astimezone().isoformat()
+open(f"{PROJECTS}/{PROJ}/jobs/jobs.txt", "a").write(f"S {ID} {__time__()}\n")
+
+GN=sys.argv[4]
+GENOM=INPUTS+GN
+
+LOG=f"{PROJECTS}/{PROJ}/jobs/job.{ID}.out.txt"
+ERR=f"{PROJECTS}/{PROJ}/jobs/job.{ID}.err.txt"
+Path(LOG).touch()
+Path(ERR).touch()
+
+def log(msg):
+    with open(LOG, 'a') as fo:
+        fo.write(msg+'\n')
+
+def err(msg):
+    with open(ERR, 'a') as fo:
+        fo.write(msg+'\n')
+
+seqs = [x for x in open(GENOM) if x.startswith('>')]
+log(f'#{len(seqs)} found in fasta {GENOM}')
+
+print(f"... QINPUT PY ...")
+
+
+
+print('TERMINADO_COM_SUCESSO')
+open(f"{PROJECTS}/{PROJ}/jobs/jobs.txt", "a").write(f"E {ID} {__time__()}\n")

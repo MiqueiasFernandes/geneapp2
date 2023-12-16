@@ -22,7 +22,7 @@ ALLOW = ['http://ftp.ncbi.nlm.nih.gov/', 'https://ftp.ncbi.nlm.nih.gov/']
 BASIC_STR = re.compile(r"^[A-Za-z0-9@ ,:/_.-]{4,200}$")
 
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 100000000
+##app.config["MAX_CONTENT_LENGTH"] = 100000000
 
 print(f"""
          .....  SERVICE [{LIMIT} / {SLOTS}] => {PROF}  ....

@@ -5,6 +5,7 @@
 services:
 
   django:
+    image: mikeiasfernandes93/geneapp2backend
     build:
       context: backend
     hostname: geneappserver
@@ -14,6 +15,7 @@ services:
       - ./profile.env
 
   flask:
+    image: mikeiasfernandes93/geneapp2service
     build:
       context: service
     hostname: geneappservice
@@ -23,6 +25,7 @@ services:
       - ./profile.env
 
   nuxt:
+    image: mikeiasfernandes93/geneapp2frontend
     build:
       context: frontend
     hostname: geneappexplorer
@@ -30,6 +33,7 @@ services:
       - ./profile.env
 
   nginx:
+    image: mikeiasfernandes93/geneapp2proxy
     build:
       context: proxy
     depends_on:

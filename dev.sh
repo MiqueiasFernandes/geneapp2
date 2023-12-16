@@ -11,4 +11,4 @@ cd frontend/geneappexplorer && npm ci && npm run build && cd ../../
 
 $DJANGO runserver &
 cd frontend/geneappexplorer/ && npm run dev && ../../ &
-docker run -p 9000:9000 -v ./data:/tmp/geneappdata -v ./service:/app geneapp2-flask
+docker run -p 9000:9000 -v ./data:/tmp/geneappdata -v ./service:/app mikeiasfernandes93/geneapp2service

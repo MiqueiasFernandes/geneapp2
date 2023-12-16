@@ -127,20 +127,21 @@ export const Project_FUNGI: IProject = {
     control: "WILD",
     treatment: "TREATED",
     organism: "Candida albicans",
-    online: true, rmats_readLength: 50,
-    genome: "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_genomic.fna.gz",
-    anotattion: "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_genomic.gff.gz",
-    proteome: "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_protein.faa.gz",
-    transcriptome: "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_rna.fna.gz",
+    online: false, //true, 
+    rmats_readLength: 50,
+    genome: "genome.fasta", //"https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_genomic.fna.gz",
+    anotattion: "anotattion.gff3", //"https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_genomic.gff.gz",
+    proteome: "proteome.faa", //"https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_protein.faa.gz",
+    transcriptome: "transcriptome.fna", //"https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/182/965/GCF_000182965.3_ASM18296v3/GCF_000182965.3_ASM18296v3_rna.fna.gz",
     library: LBS[1],
     threads: 1, ram: 2, disk: 10, fast: false, qvalue: .05, psi: .1,
     samples: [
-        { acession: "SRR2513862", name: "ctrl1", group: 'WILD' },
-        { acession: "SRR2513863", name: "ctrl2", group: 'WILD' },
-        { acession: "SRR2513864", name: "ctrl3", group: 'WILD' },
-        { acession: "SRR2513867", name: "trt1", group: 'TREATED' },
-        { acession: "SRR2513868", name: "trt2", group: 'TREATED' },
-        { acession: "SRR2513869", name: "trt3", group: 'TREATED' }
+        { acession: "SRR2513862", name: "wild1.fq", group: 'WILD' },
+        { acession: "SRR2513863", name: "wild2.fq", group: 'WILD' },
+        { acession: "SRR2513864", name: "wild3.fq", group: 'WILD' },
+        { acession: "SRR2513867", name: "treated1.fq", group: 'TREATED' },
+        { acession: "SRR2513868", name: "treated2.fq", group: 'TREATED' },
+        { acession: "SRR2513869", name: "treated3.fq", group: 'TREATED' }
     ],
     commands: [Command.model()]
 }

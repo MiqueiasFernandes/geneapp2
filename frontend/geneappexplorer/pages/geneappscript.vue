@@ -3,12 +3,13 @@
 import type { FormError, FormSubmitEvent } from '#ui/types'
 import { type ISample, CMD_Baixar, CMD_Unzip, CMD_Copiar, CMD_Qinput, CMD_Qinput2, Project_ARABDOPSIS, Project_FUNGI, Project_HUMAN } from '~/composables';
 import LocalFile from '../utils/file';
+import Pipeline from '../utils/pipeline';
 const toast = useToast()
 
 
 const project = reactive(Project.model())
 const load_project = ref()
-const new_smp = (t: string) => `${t}${project.samples.filter(x => x.group === t).length + 1}`
+const new_smp = (t: string) => `${t.toLowerCase()}${project.samples.filter(x => x.group === t).length + 1}.${project.library?.includes('SHORT') ? 'fq' : 'fa'}`
 const terms = reactive({ a: false, b: false, c: false })
 const projects = await Project.api.list();
 const salvando = ref(false)
@@ -234,10 +235,12 @@ async function copiar() {
         copy(project.transcriptome, 'transcriptome.fna'),
         copy(project.genome, 'genome.fasta'),
         copy(project.proteome, 'proteome.faa'),
-        project.samples.map(sample => new CMD_Copiar(project)
-            .from(sample.acession)
-            .to(sample.name)
-            .step(3).enqueue().then(x => follow.push(x.id)))
+        project.samples
+            .filter((_, i) => project.fast || i < 1)
+            .map(sample => new CMD_Copiar(project)
+                .from(sample.acession)
+                .to(sample.name)
+                .step(3).enqueue().then(x => follow.push(x.id)))
     ])
 
     acompanhar(jobs3, logs3, follow, btn_baixar, btn_baixar_l, hab_prc);
@@ -262,12 +265,13 @@ async function baixar() {
         download(project.transcriptome, 'transcriptome.fna'),
         download(project.genome, 'genome.fasta'),
         download(project.proteome, 'proteome.faa'),
-        project.samples.map(sample => new CMD_Baixar(project)
-            .from(sample.acession)
-            .to(sample.name)
-            .sra()
-            .step(3).enqueue()
-            .then(x => follow.push(x.id)))
+        project.samples.filter((_, i) => project.fast || i < 1)
+            .map(sample => new CMD_Baixar(project)
+                .from(sample.acession)
+                .to(sample.name)
+                .sra()
+                .step(3).enqueue()
+                .then(x => follow.push(x.id)))
     ])
 
     acompanhar(jobs3, logs3, follow, btn_baixar, btn_baixar_l, hab_prc);
@@ -297,12 +301,16 @@ async function process() {
     btn_baixar4.value = !(btn_baixar_l4.value = true);
     const follow: any[] = [];
 
-    const stp1 = await new CMD_Qinput(project).fill().step(4).enqueue()
-    follow.push(stp1.id);
+    const pipeline = new Pipeline(project);
 
-    await new CMD_Qinput2(project).fill().step(4).wait(stp1).enqueue().then(
-        x => follow.push(x.id)
-    )
+    follow.push(...await pipeline.quality_Control());
+
+    // const stp1 = await new CMD_Qinput(project).fill().step(4).enqueue()
+    // follow.push(stp1.id);
+
+    // await new CMD_Qinput2(project).fill().step(4).wait(stp1).enqueue().then(
+    //     x => follow.push(x.id)
+    // )
 
     // const hold: Promise<ICommand>[] = [];
 
@@ -335,7 +343,13 @@ async function process() {
 }
 
 function hab_exp() {
-
+    toast.add({
+        id: 'proc_prj',
+        title: `Process data step`,
+        description: `All data are processed now.`,
+        icon: 'i-heroicons-fire',
+        color: "indigo", timeout: 10000
+    })
 }
 
 function load() {

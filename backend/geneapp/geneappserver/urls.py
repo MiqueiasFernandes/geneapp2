@@ -10,4 +10,7 @@ urlpatterns = [
     path('command', views.command),
     path('command/<int:pk>', views.command),
 
+    ## CLI interface
+    path('create_project', views.create_project),
+
 ]
