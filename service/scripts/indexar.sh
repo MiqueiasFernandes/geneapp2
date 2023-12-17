@@ -11,13 +11,13 @@ I=$PROJECTS/$PROJ/inputs
 R=$PROJECTS/$PROJ/results
 LOG=$PROJECTS/$PROJ/jobs/job.$ID.out.txt
 ERR=$PROJECTS/$PROJ/jobs/job.$ID.err.txt
-echo ".... QC SAMPLE ...." > $LOG  && touch $ERR
+echo ".... INDEX FASTA $S ...." > $LOG  && touch $ERR
 echo S $ID `date -Iseconds` >> "$PROJECTS/$PROJ/jobs/jobs.txt"
 
 echo "ARGS => " $ARGS
 
 if [ $S ]; then
-    echo  "indexing $G to quantify SALMON"
+    echo  "indexing $G to quantify => SALMON"
     salmon index -t $R/$G --index $I/$O $ARGS 1>$LOG 2>$ERR
 else
     echo  "indexing $G to mapping => HISAT2"
@@ -25,6 +25,5 @@ else
 fi
 echo "$(date +%d/%m\ %H:%M) indexing end."
 
-
+echo TERMINADO_COM_SUCESSO
 echo E $ID `date -Iseconds` >> "$PROJECTS/$PROJ/jobs/jobs.txt"
-

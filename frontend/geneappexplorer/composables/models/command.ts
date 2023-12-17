@@ -180,3 +180,15 @@ export class CMD_Qinput2 extends CMD {
         return this;
     }
 }
+
+export class CMD_Index extends CMD {
+
+    op = 10;
+    info = 'Index genomic files';
+    arg3 = "0";
+
+    genomic(file: string) { this.arg1 = file; return this }
+    idx_name(name: string) { this.arg2 = name; return this }
+    is_salmon() { this.arg3 = "1"; return this }
+
+}

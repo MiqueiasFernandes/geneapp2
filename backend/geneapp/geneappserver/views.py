@@ -20,6 +20,12 @@ from .cmd_handler.CMD06Splitx import CMD06Splitx
 from .cmd_handler.CMD07Joinx import CMD07Joinx
 from .cmd_handler.CMD08Holder import CMD08Holder
 from .cmd_handler.CMD09Qinput2 import CMD09Qinput2
+from .cmd_handler.CMD10Index import CMD10Index
+
+
+handlers = [CMD01Show(), CMD02Copy(), CMD03Download(), CMD04Unzip(), 
+            CMD05Qinput(), CMD06Splitx(), CMD07Joinx(), CMD08Holder(), CMD09Qinput2(),
+            CMD10Index()]
 
 class CRUD:
     def __init__(self, klass, serializer) -> None:
@@ -176,6 +182,8 @@ def create_project(request):
             
             serializer = ProjectSerializer(data=dx)
             _, obj = crud_projetos.create(None, yaml=serializer)
+
+            print(_, obj)
             return project(request, pk = None, obj = obj)
         except:
             pass
@@ -192,27 +200,27 @@ def project(request, pk = None, obj = None):
             if not rm_proj(obj.path):
                 print("ERROR RM PRJ", obj)
             return response
-        
         try:
             if pk is None: ## POST
                 obj.path = str(criar_proj())
                 obj.save()
 
-                assert not obj.path is None
-                for command in obj.commands:
-                    try:
-                        a, b = process(command)
-                        if a:
-                            b.save()
-                    except:
-                        print("ERROR JOB", command)
+            assert not obj.path is None
 
-                json = crud_projetos.seralizer(obj).data
+            for command in obj.commands:
+                try:
+                    a, b = process(command)
+                    if a:
+                        b.save()
+                except:
+                    print("ERROR JOB", command)
 
-                if pk is None: ## POST
-                    write_data(obj.path, "geneapp.txt", str(json))
+            json = crud_projetos.seralizer(obj).data
 
-                return JsonResponse(json, safe=False)
+            if pk is None: ## POST
+                write_data(obj.path, "geneapp.json", str(json))
+
+            return JsonResponse(json, safe=False)
         except:
             obj.delete()
             if obj.path: rm_proj(obj.path)
@@ -221,16 +229,12 @@ def project(request, pk = None, obj = None):
     return response
 
 
-
 crud_samples = CRUD(Sample, SampleSerializer)
 
 @csrf_exempt ## ENDPOINT EXTERNAL OPEN
 def sample(request, pk = None):
     response, _ = crud_samples.handle(request, pk)
     return response
-
-handlers = [CMD01Show(), CMD02Copy(), CMD03Download(), CMD04Unzip(), 
-            CMD05Qinput(), CMD06Splitx(), CMD07Joinx(), CMD08Holder(), CMD09Qinput2()]
 
 crud_commands = CRUD(Command, CommandSerializer)
 

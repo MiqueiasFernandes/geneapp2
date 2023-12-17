@@ -42,7 +42,7 @@ for g in genes:
 ss = []
 for seq in SeqIO.parse(x, "fasta"):
     if seq.id in chrs:
-        SeqIO.write(seq, open("$R/genome.fasta", "a"), "fasta")
+        SeqIO.write(seq, open("$R/genome.final.fasta", "a"), "fasta")
     else:
         continue
     for gid, start, end, strand in chrs[seq.id]:

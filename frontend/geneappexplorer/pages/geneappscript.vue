@@ -70,11 +70,8 @@ function set_prj() {
     sel.value = true;
 
     if (!items[3].disabled) {
-        // acompanhar(project.commands.filter(c => c.meta === "step4").map(x => x.id), btn_baixar, btn_baixar_l, hab_prc);
-        // stp1_cc.value = 100;
-        //return;
         acompanhar(jobs4, logs4,
-            project.commands.filter(c => c.meta === "step4").map(x => x.id), btn_baixar4, btn_baixar_l4, hab_prc);
+            project.commands.filter(c => c.meta === "step4").map(x => x.id), btn_baixar4, btn_baixar_l4, hab_exp);
     }
 
     if (!items[2].disabled) {
@@ -184,8 +181,11 @@ async function acompanhar(jobs: any, logs: any, follow: any[], btn1: { value: an
                 jobs.value.success = ss;
                 jobs.value.error = term - ss;
 
-                const f = Math.min(...cms.map(c => new Date(c.started_at || Date.now()).getTime()))
-                const l = Math.max(...cms.map(c => new Date(c.ended_at || Date.now()).getTime()));
+                const inis = cms.map(c => c.started_at).filter(c => c && c.length > 5).map(e => new Date(e || '').getTime());
+                const ends = cms.map(c => c.ended_at).filter(c => c && c.length > 5).map(e => new Date(e || '').getTime());
+                const f = inis.length < 1 ? new Date(Date.now()).getTime() : Math.min(...inis);
+                const l = ends.length < 1 ? new Date(Date.now()).getTime() : Math.max(...ends);
+                
                 const dt = l - f;
                 const mint = dt > 100000;
                 jobs.value.dtime = `${Math.round(dt / (mint ? 60000 : 1000))} ${mint ? 'min' : 's'}.`;
@@ -303,7 +303,8 @@ async function process() {
 
     const pipeline = new Pipeline(project);
 
-    follow.push(...await pipeline.quality_Control());
+    follow.push(...await pipeline.main());
+
 
     // const stp1 = await new CMD_Qinput(project).fill().step(4).enqueue()
     // follow.push(stp1.id);
@@ -339,17 +340,24 @@ async function process() {
     //             .step(4).enqueue().then(x => follow.push(x.id));
     //     });
 
-    acompanhar(jobs4, logs4, follow, btn_baixar4, btn_baixar_l4, hab_exp);
+    acompanhar(jobs4, logs4, follow.map(x => x.id), btn_baixar4, btn_baixar_l4, hab_exp);
 }
 
 function hab_exp() {
+
+    btn_baixar4.value = !(btn_baixar_l4.value = false);
+    project.status = 5;
+    // Project.api.update(project).then(prj => {
+    //     Object.assign(project, prj);
+    items[4].disabled = false;
     toast.add({
         id: 'proc_prj',
         title: `Process data step`,
-        description: `All data are processed now.`,
+        description: `All data files are processed now.`,
         icon: 'i-heroicons-fire',
         color: "indigo", timeout: 10000
     })
+    // })
 }
 
 function load() {

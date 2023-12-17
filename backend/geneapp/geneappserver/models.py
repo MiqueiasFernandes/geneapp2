@@ -19,7 +19,7 @@ class Command(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     started_at = models.CharField(max_length=50, blank=True, null=True)
     ended_at = models.CharField(max_length=50, blank=True, null=True)
-    op=models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(9)])
+    op=models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(19)])
     tsp=models.PositiveIntegerField(default=0, validators=[MaxValueValidator(999999)])
     lock=models.PositiveIntegerField(default=0, validators=[MaxValueValidator(999999)])
     arg1=models.CharField(max_length=200, blank=True, null=True)

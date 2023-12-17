@@ -306,5 +306,14 @@ def holder(proj, id, p1, p2, p3, p4, p5, p6): ## segurar ate finalizar jobs depe
     if p6 > 0: args.append(p6)
     return make_job(proj, id, args)
 
+@app.route("/index/<proj>/<int:id>/<fg>/<idx>/<int:is_salmon>/<int:lock>")
+def index(proj, id, fg, idx, is_salmon, lock: int): ## juntar results arquivos de entrada
+    assert id >= 0 and proj in projects
+    fg = cln_str(fg)
+    idx = cln_str(idx)
+    args = [f"{SCRIPTS}/indexar.sh", PROJECTS, proj, id, fg, idx]
+    if is_salmon == 1:
+        args.append(1)
+    return make_job(proj, id, args, lock if lock > 0 else None)
 
 server()

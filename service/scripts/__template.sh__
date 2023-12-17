@@ -12,5 +12,5 @@ echo ".... QC SAMPLE ...." > $LOG  && touch $ERR
 echo S $ID `date -Iseconds` >> "$PROJECTS/$PROJ/jobs/jobs.txt"
 
 
-
+echo TERMINADO_COM_SUCESSO
 echo E $ID `date -Iseconds` >> "$PROJECTS/$PROJ/jobs/jobs.txt"
