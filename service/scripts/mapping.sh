@@ -1,27 +1,50 @@
+#!/bin/bash
+PROJECTS=$1 ## /tmp/geneappdata/projects
+PROJ=$2     ## 2023-12-08_c7f88f0d-f4b6-40ec-9c0e-71da742579c3
+ID=$3       ## 99
+SAMPLE=$4   ## SRR34534534
+INDEX=$5    ## idx_genome
+PARAM=$6    ## --no-unal
+IS_PE=$7    ## 1 => PE
+I=$PROJECTS/$PROJ/inputs
+R=$PROJECTS/$PROJ/results
+LOG=$PROJECTS/$PROJ/jobs/job.$ID.out.txt
+ERR=$PROJECTS/$PROJ/jobs/job.$ID.err.txt
+IDX_DIR=$I/idxs/$INDEX
+echo "INDEX DIR => $IDX_DIR"
+RUN=$I/$SAMPLE
+[ ! "$IS_PE" ] && RUN=$I/cln_$SAMPLE
+L=SMP.$SAMPLE-$IS_PE.MP.$INDEX
 
+echo ".... MAPPING $SAMPLE $IS_PE $IDX_DIR ...." > $LOG 
+touch $ERR
+echo S $ID `date -Iseconds` >> "$PROJECTS/$PROJ/jobs/jobs.txt"
+echo $IS_PE $SAMPLE 
+echo $PARAM
 
-local SID=$1
-local ETAPA=$2
-local INDEX=$3
-local SAMPLE=$4
-local LABEL=$5
-local IS_PE=$6
+SAM=$I/$SAMPLE.$INDEX.maped.sam
 
-log 5 $SID $ETAPA "mapeando $SAMPLE no $LABEL com hisat2"
-if [ $IS_PE ]; then
-    hisat2 -x $INDEX -1 $SAMPLE.F.fq -2 $SAMPLE.R.fq --no-unal -S $SAMPLE.maped.sam \
-        1>$LOG_DIR/_5.$SID.$ETAPA.map.$LABEL.$SAMPLE.log.txt 2>$LOG_DIR/_5.$SID.$ETAPA.map.$LABEL.$SAMPLE.err.txt
+if ! grep -q "$L" $R/status.txt ; then
+    echo "mapeando $SAMPLE $IS_PE com hisat2 em $IDX_DIR ."
+    if [ $IS_PE ]; then
+        hisat2 -x $IDX_DIR -1 $RUN.F.fq -2 $RUN.R.fq $PARAM -S $SAM \
+            1>>$LOG 2>>$ERR
+    else
+        hisat2 -x $IDX_DIR -U $RUN.fq $PARAM -S $SAM \
+            1>>$LOG 2>>$ERR
+    fi
+
+    if [ -f $SAM ]; then
+        echo "gerando bam de $SAM para sorted bam"
+        samtools view -S -b $SAM >$I/$SAMPLE.maped.$INDEX.tmp.bam 2>>$ERR
+        bamtools sort -in $I/$SAMPLE.maped.$INDEX.tmp.bam -out $R/$SAMPLE.$INDEX.bam 1>>$LOG 2>>$ERR
+        rm -rf $SAM $I/$SAMPLE.maped.$INDEX.tmp.bam
+    fi
 else
-    hisat2 -x $INDEX -U $SAMPLE.fq --no-unal -S $SAMPLE.maped.sam \
-        1>$LOG_DIR/_5.$SID.$ETAPA.map.$LABEL.$SAMPLE.log.txt 2>$LOG_DIR/_5.$SID.$ETAPA.map.$LABEL.$SAMPLE.err.txt
+    echo "skipping $L sucess mapping run"
+    sleep 1
 fi
 
-# 4 mapear no genoma
-[ $SKIP_MAP_GENOMA ] || mapear $SID 4 $TMP_DIR/idxgenoma $SAMPLE "GENOMA" $IS_PE
-[ $SKIP_MAP_GENOMA ] && log 5 $SID 4 "pulando mapemento no genoma para amostra $SAMPLE"
-if [ -f $SAMPLE.maped.sam ]; then
-    log 5 $SID 4 "gerando bam de $SAMPLE para rMATS"
-    samtools view -S -b $SAMPLE.maped.sam >$SAMPLE.maped.bam 2>$LOG_DIR/_5.$SID.4_bam.$SAMPLE.err.txt
-    bamtools sort -in $SAMPLE.maped.bam -out $SAMPLE.rmats.bam 1>$LOG_DIR/_5.$SID.4_bamSort.$SAMPLE.log.txt 2>>$LOG_DIR/_5.$SID.4_bamSort.$SAMPLE.err.txt
-    rm -rf $SAMPLE.maped.sam $SAMPLE.maped.bam
-fi
+echo "$L $(date +%d/%m\ %H:%M) sample mapped." >> $R/status.txt
+echo TERMINADO_COM_SUCESSO
+echo E $ID `date -Iseconds` >> "$PROJECTS/$PROJ/jobs/jobs.txt"

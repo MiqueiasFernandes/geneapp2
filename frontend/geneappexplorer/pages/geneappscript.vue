@@ -9,7 +9,7 @@ const toast = useToast()
 
 const project = reactive(Project.model())
 const load_project = ref()
-const new_smp = (t: string) => `${t.toLowerCase()}${project.samples.filter(x => x.group === t).length + 1}.${project.library?.includes('SHORT') ? 'fq' : 'fa'}`
+const new_smp = (t: string) => `${t.toLowerCase()}${project.samples.filter(x => x.group === t).length + 1}`
 const terms = reactive({ a: false, b: false, c: false })
 const projects = await Project.api.list();
 const salvando = ref(false)
@@ -171,7 +171,7 @@ async function acompanhar(jobs: any, logs: any, follow: any[], btn1: { value: an
                 const run = cms.filter(x => (!x.end) && (!x.err) && (x.status == "running"))
 
                 if (term < total)
-                    jobs.value.info = (run.length > 0 ? run.map(x => x.info).join(", ").substring(0, 30) : 'Server busy') + " ...";
+                    jobs.value.info = (run.length > 0 ? run.map(x => x.info).join(", ").substring(0, 70) : 'Server busy') + " ...";
                 else
                     jobs.value.info = 'finished all jobs.';
 
@@ -239,7 +239,7 @@ async function copiar() {
             .filter((_, i) => project.fast || i < 1)
             .map(sample => new CMD_Copiar(project)
                 .from(sample.acession)
-                .to(sample.name)
+                .to(sample.name + ".fq") /// not PE suport
                 .step(3).enqueue().then(x => follow.push(x.id)))
     ])
 

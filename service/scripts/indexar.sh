@@ -13,17 +13,23 @@ LOG=$PROJECTS/$PROJ/jobs/job.$ID.out.txt
 ERR=$PROJECTS/$PROJ/jobs/job.$ID.err.txt
 echo ".... INDEX FASTA $S ...." > $LOG  && touch $ERR
 echo S $ID `date -Iseconds` >> "$PROJECTS/$PROJ/jobs/jobs.txt"
-
+IDX_DIR=$I/idxs
+[ ! -d "$IDX_DIR" ] && mkdir $IDX_DIR
+echo "INDEX DIR => $IDX_DIR"
 echo "ARGS => " $ARGS
 
-if [ $S ]; then
-    echo  "indexing $G to quantify => SALMON"
-    salmon index -t $R/$G --index $I/$O $ARGS 1>$LOG 2>$ERR
+if ! grep -q $O $R/status.txt ; then
+    if [ $S ]; then
+        echo  "indexing $G to quantify => SALMON"
+        salmon index -t $R/$G --index $IDX_DIR/$O $ARGS 1>$LOG 2>$ERR
+    else
+        echo  "indexing $G to mapping => HISAT2"
+        hisat2-build $R/$G $IDX_DIR/$O $ARGS 1>$LOG 2>$ERR
+    fi
 else
-    echo  "indexing $G to mapping => HISAT2"
-    hisat2-build $R/$G $I/$O $ARGS 1>$LOG 2>$ERR
+    echo "skipping $O sucess run"
+    sleep 1
 fi
-echo "$(date +%d/%m\ %H:%M) indexing end."
-
+echo "$O $(date +%d/%m\ %H:%M) indexing end." >> $R/status.txt
 echo TERMINADO_COM_SUCESSO
 echo E $ID `date -Iseconds` >> "$PROJECTS/$PROJ/jobs/jobs.txt"

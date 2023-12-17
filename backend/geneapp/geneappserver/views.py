@@ -21,11 +21,13 @@ from .cmd_handler.CMD07Joinx import CMD07Joinx
 from .cmd_handler.CMD08Holder import CMD08Holder
 from .cmd_handler.CMD09Qinput2 import CMD09Qinput2
 from .cmd_handler.CMD10Index import CMD10Index
+from .cmd_handler.CMD11QCSample import CMD11QCSample
+from .cmd_handler.CMD12Mapping import CMD12Mapping
 
 
 handlers = [CMD01Show(), CMD02Copy(), CMD03Download(), CMD04Unzip(), 
             CMD05Qinput(), CMD06Splitx(), CMD07Joinx(), CMD08Holder(), CMD09Qinput2(),
-            CMD10Index()]
+            CMD10Index(), CMD11QCSample(), CMD12Mapping()]
 
 class CRUD:
     def __init__(self, klass, serializer) -> None:

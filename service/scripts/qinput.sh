@@ -24,6 +24,9 @@ echo $A
 echo $X
 ## fasta dos genes
 echo $Z
+L=QINPUTSH
+
+if ! grep -q $L $R/status.txt ; then
 
 cd $PROJECTS/$PROJ
 gffread $I/$A -g $I/$G --no-pseudo -UCOo $R/$X &&
@@ -55,5 +58,10 @@ o = "$R/$Z"
 z = SeqIO.write(ss, o, "fasta")
 print(z, "genes stored at", o)
 EOF
-
+else
+    echo "skipping $L sucess run"
+    sleep 1
+    echo TERMINADO_COM_SUCESSO
+fi
+echo "$L $(date +%d/%m\ %H:%M)" >> $R/status.txt
 echo E $ID `date -Iseconds` >> "$PROJECTS/$PROJ/jobs/jobs.txt"

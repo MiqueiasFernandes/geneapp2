@@ -211,7 +211,8 @@ def make_job(proj:str, id:int, args, lock=None):
 
 def _clean(external, allow):
     try:
-        external = external.strip().replace('..', '.')
+        external = external.replace('\\', '/').replace('..', '.')
+        external = f"{external.strip()}"
         assert re.fullmatch(BASIC_STR, external) 
         assert (not external.startswith('/')) and (not external.endswith('/'))
         assert allow(external)
@@ -231,15 +232,15 @@ def show(proj, id, file): ## salvar texto na pasta results
     open(f'{INPUTS}/{msg}', 'w').write(request_data['msg'])
     return make_job(proj, id, [f"{SCRIPTS}/show.sh", PROJECTS, proj, id, file, msg])
 
-@app.route("/copiar/<proj>/<int:id>/<fin>/<fout>")
-def copiar(proj, id, fin, fout): ## copiar do inputs geral para o inputs do projeto
+@app.route("/copiar/<proj>/<int:id>/<fin>/<fout>/<int:lock>")
+def copiar(proj, id, fin, fout, lock): ## copiar do inputs geral para o inputs do projeto
     assert id >= 0 and proj in projects
     src = cln_input(fin)
     dst = cln_str(fout)
-    return make_job(proj, id, [f"{SCRIPTS}/copiar.sh", PROJECTS, proj, id, src, dst])
+    return make_job(proj, id, [f"{SCRIPTS}/copiar.sh", PROJECTS, proj, id, src, dst], lock)
 
-@app.route("/baixar/<proj>/<int:id>/<out>/<int:sra>/<int:paired>", methods=['POST'])
-def baixar(proj, id, out, sra, paired): ## baixar no inputs do projeto
+@app.route("/baixar/<proj>/<int:id>/<out>/<int:sra>/<int:paired>/<int:lock>", methods=['POST'])
+def baixar(proj, id, out, sra, paired, lock): ## baixar no inputs do projeto
     assert id >= 0 and proj in projects
     request_data = request.get_json()
     url = cln_url(request_data['url']) if sra == 1 else cln_url(request_data['url'])
@@ -249,7 +250,7 @@ def baixar(proj, id, out, sra, paired): ## baixar no inputs do projeto
         args.append("1")
         if paired == 1:
             args.append("1")
-    return make_job(proj, id, args)
+    return make_job(proj, id, args, lock)
 
 @app.route("/unzip/<proj>/<int:id>/<path>/<int:lock>")
 def unzip(proj, id, path, lock: int): ## abrir aquivo ou pasta da pasta no inputs do projeto
@@ -307,12 +308,35 @@ def holder(proj, id, p1, p2, p3, p4, p5, p6): ## segurar ate finalizar jobs depe
     return make_job(proj, id, args)
 
 @app.route("/index/<proj>/<int:id>/<fg>/<idx>/<int:is_salmon>/<int:lock>")
-def index(proj, id, fg, idx, is_salmon, lock: int): ## juntar results arquivos de entrada
+def index(proj, id, fg, idx, is_salmon, lock: int): ## index genomic files
     assert id >= 0 and proj in projects
     fg = cln_str(fg)
     idx = cln_str(idx)
     args = [f"{SCRIPTS}/indexar.sh", PROJECTS, proj, id, fg, idx]
     if is_salmon == 1:
+        args.append(1)
+    return make_job(proj, id, args, lock if lock > 0 else None)
+
+@app.route("/qcsample/<proj>/<int:id>/<sample>/<int:is_pe>/<int:lock>", methods=['POST'])
+def qcsample(proj, id, sample, is_pe, lock: int): ## quality control for fastq short reads
+    assert id >= 0 and proj in projects
+    sample = cln_str(sample)
+    request_data = request.get_json()
+    param =  cln_str(request_data['param'])
+    args = [f"{SCRIPTS}/qcsample.sh", PROJECTS, proj, id, sample, param]
+    if is_pe == 1:
+        args.append(1)
+    return make_job(proj, id, args, lock if lock > 0 else None)
+
+@app.route("/mapping/<proj>/<int:id>/<sample>/<index>/<int:is_pe>/<int:lock>", methods=['POST'])
+def mapping(proj, id, sample, index, is_pe, lock: int): ## maping in indexed genomic files
+    assert id >= 0 and proj in projects
+    sample = cln_str(sample)
+    index = cln_str(index)
+    request_data = request.get_json()
+    param =  cln_str(request_data['param'])
+    args = [f"{SCRIPTS}/mapping.sh", PROJECTS, proj, id, sample, index, param]
+    if is_pe == 1:
         args.append(1)
     return make_job(proj, id, args, lock if lock > 0 else None)
 

@@ -168,16 +168,24 @@ def makegff(fin, fout, seqs):
     dt = clean_gff(fin, seqs)
     return sortgff(dt, fout)
 
-valids, _ = clean_fasta(FILE_GENOME, GENOM_OUT, 
-                   GEN_RGX, MIN_CHR, MAX_CHR, MAX_CHRS, RESULTS+"invalid_stats.txt")
+def main():
+    valids, _ = clean_fasta(FILE_GENOME, GENOM_OUT, 
+                    GEN_RGX, MIN_CHR, MAX_CHR, MAX_CHRS, RESULTS+"invalid_stats.txt")
 
-outp = makegff(FILE_GFF, GFF_OUT, [x[0] for x in valids])
+    outp = makegff(FILE_GFF, GFF_OUT, [x[0] for x in valids])
 
-## {'gene': 45000, 'mRNA': 137721, 'exon': 2223011, 'CDS': 1772807}
-print("Seqs", len(valids), 
-      "Genes", outp['gene'], "mRNA", outp['mRNA'], 
-      "Exons", outp['exon'], "CDS", outp['CDS'])
+    ## {'gene': 45000, 'mRNA': 137721, 'exon': 2223011, 'CDS': 1772807}
+    print("Seqs", len(valids), 
+        "Genes", outp['gene'], "mRNA", outp['mRNA'], 
+        "Exons", outp['exon'], "CDS", outp['CDS'])
+
+status=f"{PROJECTS}/{PROJ}/results/status.txt"
+open(status, "a")
+if not "QINPUTPY ... ok!\n" in open(status).readlines():
+    main()
+else:
+    print("skipping QINPUTPY last run")
 
 print('TERMINADO_COM_SUCESSO')
-
+open(status, "a").write("QINPUTPY ... ok!\n")
 open(f"{PROJECTS}/{PROJ}/jobs/jobs.txt", "a").write("E " + ID + " "+ datetime.now(timezone.utc).replace(microsecond=0).astimezone().isoformat()+"\n")

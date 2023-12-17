@@ -1,6 +1,5 @@
-import type { ICommand, IProject } from "#imports";
-import { CMD_Index } from "~/composables";
-
+import type { ICommand, IProject, ISample } from "#imports";
+import { CMD_Mapping, CMD_QCSample } from "~/composables";
 
 export default class Pipeline {
 
@@ -33,18 +32,47 @@ export default class Pipeline {
             .add(idx_genoma)
             .add(idx_genes)
             .add(idx_rnas)
-            .add(idx_rnas_slm)
+            .add(idx_rnas_slm).step(4)
             .enqueue()
 
         return [holder, idx_genoma, idx_genes, idx_rnas, idx_rnas_slm]
     }
 
+    public async map_sample(sample: ISample, idx: string, c: ICommand): Promise<ICommand> {
+        return new CMD_Mapping(this.project)
+            .sample(sample.name).index(idx)
+            .step(4).wait(c).enqueue();
+    }
 
+    public async process_Sample(sample: ISample, lock: ICommand): Promise<ICommand[]> {
+        /// as amostra ja devem estar descompatads da origem
+        /// pegar args do frontend
+        var fq: ICommand;
+        if (this.project.online)
+            fq = await new CMD_Baixar(this.project)
+                .from(sample.acession)
+                .to(sample.name)
+                .sra().wait(lock)
+                .step(4).enqueue()
+        else
+            fq = await new CMD_Copiar(this.project)
+                .from(sample.acession)
+                .to(sample.name + '.fq')
+                .step(4).wait(lock).enqueue()
 
-    public process_Sample() {
+        const qcfq = await new CMD_QCSample(this.project).sample(sample.name).step(4).wait(fq).enqueue();
 
-        /// verificar se a amostra nao ja existe
-        /// rodar ela
+        const map_genom = await this.map_sample(sample, 'idx_genoma', qcfq);
+        const map_gene = await this.map_sample(sample, 'idx_genes', this.project.fast ? qcfq : map_genom);
+        const map_rna = await this.map_sample(sample, 'idx_rnas', this.project.fast ? qcfq : map_gene);
+
+        const holder = await new CMD_Holder(this.project)
+            .add(this.project.fast ? map_genom : map_rna)
+            .add(this.project.fast ? map_gene : undefined)
+            .add(this.project.fast ? map_rna : undefined).step(4)
+            .enqueue()
+
+        return [holder, fq, qcfq, map_genom, map_gene, map_rna]
     }
 
 
@@ -52,8 +80,21 @@ export default class Pipeline {
 
         const qc_jobs = await this.quality_Control();
         const ixd_jobs = await this.index_all(qc_jobs[0]);
+        var samples_jobs: ICommand[] = []
 
-        return qc_jobs.concat(ixd_jobs)
+        const bam_jobs = []
+
+        var tmp: ICommand = ixd_jobs[0];
+        for (let index = 0; index < this.project.samples.length; index++) {
+            const sample = this.project.samples[index];
+            const lock: ICommand = (index == 0 || this.project.fast) ? ixd_jobs[0] : tmp;
+            const cmdsmp = await this.process_Sample(sample, lock);
+            tmp = cmdsmp[0];
+            bam_jobs.push(tmp);
+            samples_jobs.push(...cmdsmp);
+        }
+
+        return qc_jobs.concat(ixd_jobs).concat(samples_jobs)
     }
 
 }

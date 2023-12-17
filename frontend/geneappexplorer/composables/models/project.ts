@@ -136,12 +136,12 @@ export const Project_FUNGI: IProject = {
     library: LBS[1],
     threads: 1, ram: 2, disk: 10, fast: false, qvalue: .05, psi: .1,
     samples: [
-        { acession: "SRR2513862", name: "wild1.fq", group: 'WILD' },
-        { acession: "SRR2513863", name: "wild2.fq", group: 'WILD' },
-        { acession: "SRR2513864", name: "wild3.fq", group: 'WILD' },
-        { acession: "SRR2513867", name: "treated1.fq", group: 'TREATED' },
-        { acession: "SRR2513868", name: "treated2.fq", group: 'TREATED' },
-        { acession: "SRR2513869", name: "treated3.fq", group: 'TREATED' }
+        { acession: "SRR2513862", name: "wild1", group: 'WILD' },
+        { acession: "SRR2513863", name: "wild2", group: 'WILD' },
+        { acession: "SRR2513864", name: "wild3", group: 'WILD' },
+        { acession: "SRR2513867", name: "treated1", group: 'TREATED' },
+        { acession: "SRR2513868", name: "treated2", group: 'TREATED' },
+        { acession: "SRR2513869", name: "treated3", group: 'TREATED' }
     ],
     commands: [Command.model()]
 }

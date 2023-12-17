@@ -79,7 +79,7 @@ class CMD implements ICommand {
         return Command.api.create(this);
     }
 
-    wait(c: ICommand) { this.lock = c.tsp || 0; return this }
+    wait(c?: ICommand) { if (c) this.lock = c.tsp || 0; return this }
 
 }
 
@@ -152,7 +152,8 @@ export class CMD_Holder extends CMD {
     op = 8;
     info = 'Holder for jobs finish toghether';
 
-    add(c: ICommand) {
+    add(c?: ICommand) {
+        if (!c) return this;
         const tsp = `${c.tsp}`;
         if (!this.arg1) { this.arg1 = tsp; return this };
         if (!this.arg2) { this.arg2 = tsp; return this };
@@ -190,5 +191,40 @@ export class CMD_Index extends CMD {
     genomic(file: string) { this.arg1 = file; return this }
     idx_name(name: string) { this.arg2 = name; return this }
     is_salmon() { this.arg3 = "1"; return this }
+
+}
+
+export class CMD_QCSample extends CMD {
+
+    op = 11;
+    info = 'Quality control for ? fastqc files';
+    arg3 = "0";
+
+    constructor(prj: IProject) {
+        super(prj);
+        this.arg2 = "ILLUMINACLIP:TruSeq3-PE.fa:2:30:10:2:True LEADING:3 TRAILING:3 MINLEN:36"
+        this.arg3 = prj.library.includes("PAIRED") ? "1" : "0";
+    }
+
+    sample(file: string) { this.arg1 = file; this.info = this.info.replace("?", file); return this }
+    args(args: string) { this.arg2 = args; return this }
+
+}
+
+export class CMD_Mapping extends CMD {
+
+    op = 12;
+    info = 'Mapping ? sample on @';
+    arg4 = "0";
+
+    constructor(prj: IProject) {
+        super(prj);
+        this.arg3 = "--no-unal"
+        this.arg4 = prj.library.includes("PAIRED") ? "1" : "0";
+    }
+
+    sample(file: string) { this.arg1 = file; this.info = this.info.replace("?", file); return this }
+    index(name: string) { this.arg2 = name; this.info = this.info.replace("@", name); return this }
+    args(args: string) { this.arg3 = args; return this }
 
 }
