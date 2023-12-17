@@ -228,3 +228,21 @@ export class CMD_Mapping extends CMD {
     args(args: string) { this.arg3 = args; return this }
 
 }
+
+export class CMD_Quantify extends CMD {
+
+    op = 13;
+    info = 'Quantify ? sample on @';
+    arg4 = "0";
+
+    constructor(prj: IProject) {
+        super(prj);
+        this.arg3 = "--libType IU"
+        this.arg4 = prj.library.includes("PAIRED") ? "1" : "0";
+    }
+
+    sample(file: string) { this.arg1 = file; this.info = this.info.replace("?", file); return this }
+    index(name: string) { this.arg2 = name; this.info = this.info.replace("@", name); return this }
+    args(args: string) { this.arg3 = args; return this }
+
+}

@@ -340,4 +340,16 @@ def mapping(proj, id, sample, index, is_pe, lock: int): ## maping in indexed gen
         args.append(1)
     return make_job(proj, id, args, lock if lock > 0 else None)
 
+@app.route("/quantify/<proj>/<int:id>/<sample>/<index>/<int:is_pe>/<int:lock>", methods=['POST'])
+def quantify(proj, id, sample, index, is_pe, lock: int): ## quantify in indexed genomic files
+    assert id >= 0 and proj in projects
+    sample = cln_str(sample)
+    index = cln_str(index)
+    request_data = request.get_json()
+    param =  cln_str(request_data['param'])
+    args = [f"{SCRIPTS}/quantify.sh", PROJECTS, proj, id, sample, index, param]
+    if is_pe == 1:
+        args.append(1)
+    return make_job(proj, id, args, lock if lock > 0 else None)
+
 server()

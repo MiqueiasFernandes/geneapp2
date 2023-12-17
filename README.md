@@ -49,6 +49,8 @@ sudo docker compose down && sudo docker compose build && sudo docker compose --e
 
 
 
+#########   limitacoes  #########  
+-filtrando gene single exon
 
 mkdir /tmp/geneappdata/projects/2023-12-05_e3576547-0d65-4dbe-8f12-fbd7caab4312/inputs -p
 

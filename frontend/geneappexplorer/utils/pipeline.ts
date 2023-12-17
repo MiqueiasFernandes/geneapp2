@@ -1,5 +1,5 @@
 import type { ICommand, IProject, ISample } from "#imports";
-import { CMD_Mapping, CMD_QCSample } from "~/composables";
+import { CMD_Mapping, CMD_QCSample, CMD_Quantify } from "~/composables";
 
 export default class Pipeline {
 
@@ -44,6 +44,12 @@ export default class Pipeline {
             .step(4).wait(c).enqueue();
     }
 
+    public async quant_sample(sample: ISample, idx: string, c: ICommand): Promise<ICommand> {
+        return new CMD_Quantify(this.project)
+            .sample(sample.name).index(idx)
+            .step(4).wait(c).enqueue();
+    }
+
     public async process_Sample(sample: ISample, lock: ICommand): Promise<ICommand[]> {
         /// as amostra ja devem estar descompatads da origem
         /// pegar args do frontend
@@ -65,14 +71,16 @@ export default class Pipeline {
         const map_genom = await this.map_sample(sample, 'idx_genoma', qcfq);
         const map_gene = await this.map_sample(sample, 'idx_genes', this.project.fast ? qcfq : map_genom);
         const map_rna = await this.map_sample(sample, 'idx_rnas', this.project.fast ? qcfq : map_gene);
+        const quant = await this.quant_sample(sample, 'idx_rnas_slm', this.project.fast ? qcfq : map_rna);
 
         const holder = await new CMD_Holder(this.project)
             .add(this.project.fast ? map_genom : map_rna)
             .add(this.project.fast ? map_gene : undefined)
-            .add(this.project.fast ? map_rna : undefined).step(4)
-            .enqueue()
+            .add(this.project.fast ? map_rna : undefined)
+            .add(this.project.fast ? quant : undefined)
+            .step(4).enqueue()
 
-        return [holder, fq, qcfq, map_genom, map_gene, map_rna]
+        return [holder, fq, qcfq, map_genom, map_gene, map_rna, quant]
     }
 
 
