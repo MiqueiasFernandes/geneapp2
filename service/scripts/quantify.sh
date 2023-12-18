@@ -21,7 +21,7 @@ touch $ERR
 echo S $ID `date -Iseconds` >> "$PROJECTS/$PROJ/jobs/jobs.txt"
 echo $IS_PE $SAMPLE 
 echo $PARAM
-
+[ ! -d "$R/quants" ] && mkdir $R/quants
 
 if ! grep -q "$L" $R/status.txt ; then
 
@@ -34,8 +34,8 @@ if ! grep -q "$L" $R/status.txt ; then
         salmon quant $PARAM -r $RUN.fq -o $I/quant_$SAMPLE --index $IDX_DIR \
             1>>$LOG 2>>$ERR
     fi
-    cp $I/quant_$SAMPLE/quant.sf $R/$SAMPLE.quant.sf
-    echo "$(date +%d/%m\ %H:%M) mRNAS expressa em $SAMPLE: $(cut -f4 $R/$SAMPLE.quant.sf | tail -n+2 | grep -cv '^0$')" 
+    cp $I/quant_$SAMPLE/quant.sf $R/quants/$SAMPLE.quant.sf
+    echo "$(date +%d/%m\ %H:%M) mRNAS expressa em $SAMPLE: $(cut -f4 $R/quants/$SAMPLE.quant.sf | tail -n+2 | grep -cv '^0$')" 
 
 else
     echo "skipping $L sucess quantify run"

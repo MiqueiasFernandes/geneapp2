@@ -352,4 +352,14 @@ def quantify(proj, id, sample, index, is_pe, lock: int): ## quantify in indexed 
         args.append(1)
     return make_job(proj, id, args, lock if lock > 0 else None)
 
+
+
+# BAM1=$4   ## bam1,bam2
+# BAM2=$5    ## bam3,bam4
+# PARAM=$6    ## -t single
+# RLEN=$7 
+
+
+## Rscript R $CTRL $CASE $TMP_DIR/to3d $TMP_DIR/qnt
+
 server()

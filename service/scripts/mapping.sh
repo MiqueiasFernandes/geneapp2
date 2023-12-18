@@ -24,6 +24,8 @@ echo $PARAM
 
 SAM=$I/$SAMPLE.$INDEX.maped.sam
 
+[ ! -d "$R/bams" ] && mkdir $R/bams
+
 if ! grep -q "$L" $R/status.txt ; then
     echo "mapeando $SAMPLE $IS_PE com hisat2 em $IDX_DIR ."
     if [ $IS_PE ]; then
@@ -37,7 +39,7 @@ if ! grep -q "$L" $R/status.txt ; then
     if [ -f $SAM ]; then
         echo "gerando bam de $SAM para sorted bam"
         samtools view -S -b $SAM >$I/$SAMPLE.maped.$INDEX.tmp.bam 2>>$ERR
-        bamtools sort -in $I/$SAMPLE.maped.$INDEX.tmp.bam -out $R/$SAMPLE.$INDEX.bam 1>>$LOG 2>>$ERR
+        bamtools sort -in $I/$SAMPLE.maped.$INDEX.tmp.bam -out $R/bams/$SAMPLE.$INDEX.bam 1>>$LOG 2>>$ERR
         rm -rf $SAM $I/$SAMPLE.maped.$INDEX.tmp.bam
     fi
 else
