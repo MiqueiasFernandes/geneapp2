@@ -28,6 +28,12 @@ const btn_baixar_l4 = ref(false);
 const jobs4 = ref({ total: 0, wait: 0, error: 0, success: 0, ended: 0, info: "", dtime: "" })
 const logs4 = ref("")
 const show_logs4 = ref(false)
+const args = ref({
+    trimommatic: "ILLUMINACLIP:TruSeq3-PE.fa:2:30:10:2:True LEADING:3 TRAILING:3 MINLEN:36",
+    hisat2: "--no-unal",
+    salmon: "--libType IU",
+    rmats: "-t single"
+})
 
 
 const itemsex = [
@@ -171,7 +177,7 @@ async function acompanhar(jobs: any, logs: any, follow: any[], btn1: { value: an
                 const run = cms.filter(x => (!x.end) && (!x.err) && (x.status == "running"))
 
                 if (term < total)
-                    jobs.value.info = (run.length > 0 ? run.map(x => x.info).join(", ").substring(0, 70) : 'Server busy') + " ...";
+                    jobs.value.info = (run.length > 0 ? run.map(x => x.op != 8 ? x.info : "⌛").join(", ").substring(0, 70) : 'Server busy') + " ...";
                 else
                     jobs.value.info = 'finished all jobs.';
 
@@ -185,7 +191,7 @@ async function acompanhar(jobs: any, logs: any, follow: any[], btn1: { value: an
                 const ends = cms.map(c => c.ended_at).filter(c => c && c.length > 5).map(e => new Date(e || '').getTime());
                 const f = inis.length < 1 ? new Date(Date.now()).getTime() : Math.min(...inis);
                 const l = ends.length < 1 ? new Date(Date.now()).getTime() : Math.max(...ends);
-                
+
                 const dt = l - f;
                 const mint = dt > 100000;
                 jobs.value.dtime = `${Math.round(dt / (mint ? 60000 : 1000))} ${mint ? 'min' : 's'}.`;
@@ -304,41 +310,6 @@ async function process() {
     const pipeline = new Pipeline(project);
 
     follow.push(...await pipeline.main());
-
-
-    // const stp1 = await new CMD_Qinput(project).fill().step(4).enqueue()
-    // follow.push(stp1.id);
-
-    // await new CMD_Qinput2(project).fill().step(4).wait(stp1).enqueue().then(
-    //     x => follow.push(x.id)
-    // )
-
-    // const hold: Promise<ICommand>[] = [];
-
-    // await new CMD_Splitx(project).fill().step(4).enqueue().then(x => {
-    //     follow.push(x.id);
-    //     for (let I = 1; I <= 5; I++) {
-    //         hold.push(new CMD_Qinput(project).fill()
-    //             .genome("genome.fasta_pt" + I)
-    //             .anotattion("anotattion.gff3_pt" + I).reorg(I * 1000)
-    //             .step(4)
-    //             .wait(x).enqueue().then(x => { follow.push(x.id); return x }));
-    //     }
-    // });
-    // await Promise.all(hold);
-
-    // await new CMD_Holder(project)
-    //     .add(await hold[0])
-    //     .add(await hold[1])
-    //     .add(await hold[2])
-    //     .add(await hold[3])
-    //     .add(await hold[4])
-    //     .step(4).enqueue().then(x => {
-    //         follow.push(x.id);
-    //         new CMD_Joinx(project)
-    //             .fill().wait(x)
-    //             .step(4).enqueue().then(x => follow.push(x.id));
-    //     });
 
     acompanhar(jobs4, logs4, follow.map(x => x.id), btn_baixar4, btn_baixar_l4, hab_exp);
 }
@@ -670,6 +641,24 @@ function load() {
 
             <!-- etapa 4 -->
             <template #process>
+
+                <div class="mx-8 my-2">
+                    <UFormGroup label="ARGS Trimommatic " name="args" class="mt-6">
+                        <UInput v-model="args.trimommatic" :disabled="!btn_baixar4" class="font-mono" />
+                    </UFormGroup>
+                    <UFormGroup label="ARGS Hisat2" name="args" class="mt-6">
+                        <UInput v-model="args.hisat2" :disabled="!btn_baixar4" class="font-mono" />
+                    </UFormGroup>
+                    <UFormGroup label="ARGS Salmon" name="args" class="mt-6">
+                        <UInput v-model="args.salmon" :disabled="!btn_baixar4" class="font-mono" />
+                    </UFormGroup>
+                    <UFormGroup label="ARGS rMATS" name="args" class="mt-6">
+                        <UInput v-model="args.rmats" :disabled="!btn_baixar4" class="font-mono" />
+                    </UFormGroup>
+                </div>
+
+
+
                 <UButton @click="process" icon="i-heroicons-arrow-path-rounded-square" :loading="btn_baixar_l4"
                     :disabled="!btn_baixar4" class="my-4">Build input files</UButton>
 

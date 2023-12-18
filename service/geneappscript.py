@@ -383,14 +383,15 @@ def t3drnaseq(proj, id, ctrl, trt, lock: int): ## quantify in indexed genomic fi
     args = [f"{SCRIPTS}/t3drnaseq.R", PROJECTS, proj, id, ctrl, trt]
 
     tmp = f"{PROJECTS}/{proj}/inputs/t3drnaseq_tmp"
-    os.mkdir(tmp)
-    shutil.copyfile(f"{PROJECTS}/{proj}/results/transcript_gene_mapping.csv", f"{tmp}/transcript_gene_mapping.csv")
-    expd = f"{PROJECTS}/{proj}/inputs/t3drnaseq_tmp/experimental_design.csv"
-    with open(expd, "w") as fo:
-        fo.write("RUN,SAMPLE,FACTOR,FOLDER\n")
-        for smp in request_data['samples']:
-            run, sample, factor = cln_str(smp).split(',')
-            fo.write(f"{run},{sample},{factor},quant_{sample}\n")
+    if not os.path.isdir(tmp):
+        os.mkdir(tmp)
+        shutil.copyfile(f"{PROJECTS}/{proj}/results/transcript_gene_mapping.csv", f"{tmp}/transcript_gene_mapping.csv")
+        expd = f"{PROJECTS}/{proj}/inputs/t3drnaseq_tmp/experimental_design.csv"
+        with open(expd, "w") as fo:
+            fo.write("RUN,SAMPLE,FACTOR,FOLDER\n")
+            for smp in request_data['samples']:
+                run, sample, factor = cln_str(smp).split(',')
+                fo.write(f"{run},{sample},{factor},quant_{sample}\n")
 
     return make_job(proj, id, args, lock if lock > 0 else None)
 

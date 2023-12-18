@@ -3,7 +3,18 @@ import { CMD_Mapping, CMD_QCSample, CMD_Quantify, CMD_Rmats, CMD_T3drnaseq } fro
 
 export default class Pipeline {
 
-    constructor(private project: IProject) { }
+
+
+
+
+    constructor(
+        private project: IProject,
+        private args: {
+            trimommatic: string,
+            hisat2: string,
+            salmon: string,
+            rmats: string,
+        }) { }
 
     public async quality_Control(): Promise<ICommand[]> {
         const stp1 = await new CMD_Qinput(this.project).fill().step(4).enqueue();
@@ -86,10 +97,6 @@ export default class Pipeline {
 
     public async main(): Promise<ICommand[]> {
 
-        const t3 = await new CMD_T3drnaseq(this.project).fill().step(4).enqueue();
-
-        return [t3]
-
         const qc_jobs = await this.quality_Control();
         const ixd_jobs = await this.index_all(qc_jobs[0]);
         var samples_jobs: ICommand[] = []
@@ -110,9 +117,9 @@ export default class Pipeline {
         }
 
         const holder3 = await new CMD_Holder(this.project)
-        .add(await holder1.step(4).enqueue())
-        .add(await holder2.step(4).enqueue())
-        .step(4).enqueue();
+            .add(await holder1.step(4).enqueue())
+            .add(await holder2.step(4).enqueue())
+            .step(4).enqueue();
 
         ///rmats, t3drnaaseq, multiqc, ete3, interproscan
 

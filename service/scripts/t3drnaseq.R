@@ -1,3 +1,4 @@
+
 ### ---> ThreeDRNAseq R package
 library(ThreeDRNAseq)
 
@@ -32,6 +33,13 @@ qnt_dir <- paste0(inputs)
 
 show(paste("ARGS: ", label1, label2, tmp_dir, qnt_dir))
 setwd(tmp_dir)
+
+
+if ("t3drnaseq executado." %in% readLines(paste0(results, "/status.txt"))) {
+    write('t3drnaseq executado.', file=file(paste0(results, '/status.txt'), 'a'), append=T)
+    show("skiping previous 3drnaseq run")
+    show("TERMINADO_COM_SUCESSO")
+}
 
 ## save to object
 DDD.data <- list()
@@ -1485,4 +1493,7 @@ write.csv(
     ),
     row.names = F, na = ""
 )
+
+out = file(paste0(results, '/status.txt'), 'a')
+write('t3drnaseq executado.', file=out, append=T)
 show("TERMINADO_COM_SUCESSO")
