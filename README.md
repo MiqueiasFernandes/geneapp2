@@ -41,6 +41,8 @@ cd geneapp2/ && mkdir -p data/projects
 nano profile.env
 sudo docker compose down && sudo docker compose build && sudo docker compose --env-file profile.env up -d && sudo docker compose logs
 
+sudo rm -rf geneapp2/ && git clone https://github.com/MiqueiasFernandes/geneapp2.git && mv profile.env geneapp2/ && cd geneapp2/ && sudo docker compose down && sudo docker compose build && sudo docker compose --env-file profile.env up -d
+
 #########   licenca  #########  
  - o geneapp e seus modulos sao de propriedade registrada da ufmg e ufv
  - somente é admitido uso em pesquisa sem fim comercial

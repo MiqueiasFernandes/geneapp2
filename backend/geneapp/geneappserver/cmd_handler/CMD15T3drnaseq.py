@@ -9,7 +9,8 @@ class CMD15T3drnaseq(CMD_Handler):
     def run(self, command):
         prj, id, lock = command.project.path, command.id, command.lock
         ctrl, trt, param = command.arg1, command.arg2, command.payload
-        command.tsp = self.job_post(f"t3drnaseq/{prj}/{id}/{ctrl}/{trt}/{lock}", {"samples": param.split("\n")})
+        command.tsp = self.job_post(f"t3drnaseq/{prj}/{id}/{ctrl}/{trt}/{lock}", 
+                                    {"samples": param.split("\n"), "param": command.arg3})
         if command.tsp > 0:
             command.status = 'submetido'
             return True

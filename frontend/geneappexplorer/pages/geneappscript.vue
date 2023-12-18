@@ -1,7 +1,7 @@
 
 <script setup lang="ts">
 import type { FormError, FormSubmitEvent } from '#ui/types'
-import { type ISample, CMD_Baixar, CMD_Unzip, CMD_Copiar, CMD_Qinput, CMD_Qinput2, Project_ARABDOPSIS, Project_FUNGI, Project_HUMAN } from '~/composables';
+import { type ISample, CMD_Baixar, CMD_Unzip, CMD_Copiar, Project_ARABDOPSIS, Project_FUNGI, Project_HUMAN } from '~/composables';
 import LocalFile from '../utils/file';
 import Pipeline from '../utils/pipeline';
 const toast = useToast()
@@ -32,7 +32,8 @@ const args = ref({
     trimommatic: "ILLUMINACLIP:TruSeq3-PE.fa:2:30:10:2:True LEADING:3 TRAILING:3 MINLEN:36",
     hisat2: "--no-unal",
     salmon: "--libType IU",
-    rmats: "-t single"
+    rmats: "-t single",
+    t3drna: "deltaPS_cut:0.05 DE_pipeline:'glmQL'"
 })
 
 
@@ -307,7 +308,7 @@ async function process() {
     btn_baixar4.value = !(btn_baixar_l4.value = true);
     const follow: any[] = [];
 
-    const pipeline = new Pipeline(project);
+    const pipeline = new Pipeline(project, args.value);
 
     follow.push(...await pipeline.main());
 
@@ -654,6 +655,9 @@ function load() {
                     </UFormGroup>
                     <UFormGroup label="ARGS rMATS" name="args" class="mt-6">
                         <UInput v-model="args.rmats" :disabled="!btn_baixar4" class="font-mono" />
+                    </UFormGroup>
+                    <UFormGroup label="ARGS 3DRNASeq" name="args" class="mt-6">
+                        <UInput v-model="args.t3drna" :disabled="!btn_baixar4" class="font-mono" />
                     </UFormGroup>
                 </div>
 

@@ -19,7 +19,7 @@ SCRIPTS='/app/scripts'
 INPUTS=PROJECTS+'/inputs'
 VOID=('', 204)
 ALLOW = ['http://ftp.ncbi.nlm.nih.gov/', 'https://ftp.ncbi.nlm.nih.gov/']
-BASIC_STR = re.compile(r"^[A-Za-z0-9@ ,:/_.-]{4,200}$")
+BASIC_STR = re.compile(r"^[A-Za-z0-9@ ,:_.'-]{4,200}$")
 
 app = Flask(__name__)
 ##app.config["MAX_CONTENT_LENGTH"] = 100000000
@@ -58,6 +58,7 @@ def server():
         output, _ = p.communicate()
         if int(output.decode('utf-8')) == SLOTS:
             tsp = f"tsp has {SLOTS} slots"
+            Popen(["tsp", "echo", "job0"])
         else:
             tsp = "error in tsp."
     except:
@@ -174,6 +175,8 @@ def set_job_status():
     Essa funcao será chamada automaticamente pelo TSP ao finalizar a execucao de cada job
     """""
     request_data = request.get_json()
+    if not request_data['jobid'] in jobs:
+        return VOID
     job: Job = jobs[request_data['jobid']]
     job.finish()
     try:
@@ -379,8 +382,8 @@ def t3drnaseq(proj, id, ctrl, trt, lock: int): ## quantify in indexed genomic fi
     ctrl = cln_str(ctrl)
     trt = cln_str(trt)
     request_data = request.get_json()
-    ##param =  cln_str(request_data['param'])
-    args = [f"{SCRIPTS}/t3drnaseq.R", PROJECTS, proj, id, ctrl, trt]
+    param =  cln_str(request_data['param'])
+    args = [f"{SCRIPTS}/t3drnaseq.R", PROJECTS, proj, id, ctrl, trt, param]
 
     tmp = f"{PROJECTS}/{proj}/inputs/t3drnaseq_tmp"
     if not os.path.isdir(tmp):

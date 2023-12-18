@@ -11,7 +11,8 @@ I=$PROJECTS/$PROJ/inputs
 R=$PROJECTS/$PROJ/results
 LOG=$PROJECTS/$PROJ/jobs/job.$ID.out.txt
 ERR=$PROJECTS/$PROJ/jobs/job.$ID.err.txt
-
+touch $LOG
+touch $ERR
 L=RMATS
 
 echo ".... RMATS $RLEN ...." > $LOG 
