@@ -23,12 +23,14 @@ echo $PARAM
 [ ! -d "$R/quants" ] && mkdir $R/quants
 
 if ! grep -q "$L" $R/status.txt ; then
-
-/rmats/rmats.py \
-      --b1 $BAM1 --b2 $BAM2 --gtf genes.gtf \
-      --od $I/rmats_out --tmp $I/tmp_out \
-      --readLength $RLEN $PARAM 1>>$LOG 2>>$ERR
-
+    mkdir $R/rmats
+    echo $BAM1 > $I/bam1.txt
+    echo $BAM2 > $I/bam2.txt
+    /rmats/rmats.py \
+        --b1 $I/bam1.txt --b2 $I/bam2.txt --gtf $R/genes.gtf \
+        --od $I/rmats_out --tmp $I/rmats_tmp \
+       $PARAM --readLength $RLEN  1>>$LOG 2>>$ERR &&
+       cp $I/rmats_out/*JCEC.txt $I/rmats_out/summary.txt $R/rmats
 else
     echo "skipping $L sucess rmats run"
     sleep 1

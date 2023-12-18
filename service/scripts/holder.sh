@@ -9,8 +9,12 @@ PS2=$5
 PS3=$6   
 PS4=$7   
 PS5=$8   
-PS6=$9   
-   
+PS6=$9  
+PS7=${10}  
+PS8=${11}  
+PS9=${12}  
+PS10=${13}   
+
 LOG=$PROJECTS/$PROJ/jobs/job.$ID.out.txt
 ERR=$PROJECTS/$PROJ/jobs/job.$ID.err.txt
 echo ".... HOLDER ...." > $LOG
@@ -27,6 +31,10 @@ cd $PROJECTS/$PROJ
 [ $PS4 ] && echo "waiting for $PS4 ..." && tsp -w $PS4
 [ $PS5 ] && echo "waiting for $PS5 ..." && tsp -w $PS5
 [ $PS6 ] && echo "waiting for $PS6 ..." && tsp -w $PS6
+[ $PS7 ] && echo "waiting for $PS7 ..." && tsp -w $PS7
+[ $PS8 ] && echo "waiting for $PS8 ..." && tsp -w $PS8
+[ $PS9 ] && echo "waiting for $PS9 ..." && tsp -w $PS9
+[ $PS10 ] && echo "waiting for $PS10 ..." && tsp -w $PS10
 
 echo TERMINADO_COM_SUCESSO
 

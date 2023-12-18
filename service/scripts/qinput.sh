@@ -57,6 +57,10 @@ for seq in SeqIO.parse(x, "fasta"):
 o = "$R/$Z"
 z = SeqIO.write(ss, o, "fasta")
 print(z, "genes stored at", o)
+
+gff = [x.strip().split("\t") for x in open(y) if not x.startswith("#")]
+ms = [x[-1].split(";") for x in gff if x[2] == 'mRNA']
+open("$R/transcript_gene_mapping.csv", "w").writelines(["TXNAME,GENEID\n"]+[f"{t[3:]},{g[7:]}\n" for t, g in ms])
 EOF
 else
     echo "skipping $L sucess run"

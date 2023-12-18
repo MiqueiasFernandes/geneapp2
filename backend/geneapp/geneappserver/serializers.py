@@ -36,8 +36,7 @@ class CommandSerializer(serializers.ModelSerializer):
         instance.info = validated_data.get('info', instance.info)
         instance.save()
         return instance
-
-    
+  
 class ProjectSerializer(serializers.ModelSerializer):
     samples = SampleSerializer(many=True)
     commands = CommandSerializer(many=True)
@@ -56,7 +55,7 @@ class ProjectSerializer(serializers.ModelSerializer):
         
     def create(self, validated_data):
         samples = validated_data.pop('samples')
-        assert len(samples) < 20
+        assert len(samples) < 10
         commands = validated_data.pop('commands')
         project = Project.objects.create(**validated_data)
         for sample in samples:

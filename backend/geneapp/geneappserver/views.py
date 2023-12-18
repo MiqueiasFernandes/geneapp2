@@ -24,11 +24,13 @@ from .cmd_handler.CMD10Index import CMD10Index
 from .cmd_handler.CMD11QCSample import CMD11QCSample
 from .cmd_handler.CMD12Mapping import CMD12Mapping
 from .cmd_handler.CMD13Quantify import CMD13Quantify
+from .cmd_handler.CMD14Rmats import CMD14Rmats
+from .cmd_handler.CMD15T3drnaseq import CMD15T3drnaseq
 
 
 handlers = [CMD01Show(), CMD02Copy(), CMD03Download(), CMD04Unzip(), 
             CMD05Qinput(), CMD06Splitx(), CMD07Joinx(), CMD08Holder(), CMD09Qinput2(),
-            CMD10Index(), CMD11QCSample(), CMD12Mapping(), CMD13Quantify()]
+            CMD10Index(), CMD11QCSample(), CMD12Mapping(), CMD13Quantify(), CMD14Rmats(), CMD15T3drnaseq()]
 
 class CRUD:
     def __init__(self, klass, serializer) -> None:

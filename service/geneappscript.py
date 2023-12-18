@@ -119,6 +119,10 @@ class Job:
         self.end = False
         self.success = False
         self.logf = f"{PROJECTS}/{self.prj}/jobs/job.{self.id}.log.txt"
+        if self.args[0].endswith(".R"):
+            self.args.insert(0, "Rscript" )
+            open(self.logf.replace(".log.", ".out."), "w")
+            open(self.logf.replace(".log.", ".err."), "w")
 
     def lock(self, tsp_id):
         self.args.insert(0, str(tsp_id))
@@ -175,7 +179,7 @@ def set_job_status():
     try:
         output_filename = request_data['output_filename']
         shutil.copyfile(output_filename, job.logf)
-        job.finish(open(job.logf).read().endswith("TERMINADO_COM_SUCESSO\n"))
+        job.finish("TERMINADO_COM_SUCESSO" in open(job.logf).readlines()[-1])
     except:
         print(f"JOB FINISH ERROR: {request_data}", file=sys.stderr)
     return VOID
@@ -296,8 +300,8 @@ def joinx(proj, id, fg, fa, lock: int): ## juntar results arquivos de entrada
     fa = cln_str(fa)
     return make_job(proj, id, [f"{SCRIPTS}/joinx.sh", PROJECTS, proj, id, fg, fa], lock if lock > 0 else None)
 
-@app.route("/holder/<proj>/<int:id>/<int:p1>/<int:p2>/<int:p3>/<int:p4>/<int:p5>/<int:p6>")
-def holder(proj, id, p1, p2, p3, p4, p5, p6): ## segurar ate finalizar jobs dependencia
+@app.route("/holder/<proj>/<int:id>/<int:p1>/<int:p2>/<int:p3>/<int:p4>/<int:p5>/<int:p6>/<int:p7>/<int:p8>/<int:p9>")
+def holder(proj, id, p1, p2, p3, p4, p5, p6, p7, p8, p9): ## segurar ate finalizar jobs dependencia
     assert id >= 0 and proj in projects and p1 > 0
     args = [f"{SCRIPTS}/holder.sh", PROJECTS, proj, id, p1]
     if p2 > 0: args.append(p2)
@@ -305,6 +309,9 @@ def holder(proj, id, p1, p2, p3, p4, p5, p6): ## segurar ate finalizar jobs depe
     if p4 > 0: args.append(p4)
     if p5 > 0: args.append(p5)
     if p6 > 0: args.append(p6)
+    if p7 > 0: args.append(p7)
+    if p8 > 0: args.append(p8)
+    if p9 > 0: args.append(p9)
     return make_job(proj, id, args)
 
 @app.route("/index/<proj>/<int:id>/<fg>/<idx>/<int:is_salmon>/<int:lock>")
@@ -353,13 +360,39 @@ def quantify(proj, id, sample, index, is_pe, lock: int): ## quantify in indexed 
     return make_job(proj, id, args, lock if lock > 0 else None)
 
 
-
-# BAM1=$4   ## bam1,bam2
-# BAM2=$5    ## bam3,bam4
-# PARAM=$6    ## -t single
-# RLEN=$7 
+@app.route("/rmats/<proj>/<int:id>/<bam1>/<bam2>/<int:rlen>/<int:lock>", methods=['POST'])
+def rmats(proj, id, bam1, bam2, rlen, lock: int): ## quantify in indexed genomic files
+    assert id >= 0 and proj in projects and rlen > 10
+    bam1 = ",".join(map(lambda e: f"{PROJECTS}/{proj}/results/bams/{e}", cln_str(bam1).split(',')))
+    bam2 = ",".join(map(lambda e: f"{PROJECTS}/{proj}/results/bams/{e}", cln_str(bam2).split(',')))
+    request_data = request.get_json()
+    param =  cln_str(request_data['param'])
+    args = [f"{SCRIPTS}/rmats.sh", PROJECTS, proj, id, bam1, bam2, param, rlen]
+    return make_job(proj, id, args, lock if lock > 0 else None)
 
 
 ## Rscript R $CTRL $CASE $TMP_DIR/to3d $TMP_DIR/qnt
+
+@app.route("/t3drnaseq/<proj>/<int:id>/<ctrl>/<trt>/<int:lock>", methods=['POST'])
+def t3drnaseq(proj, id, ctrl, trt, lock: int): ## quantify in indexed genomic files
+    assert id >= 0 and proj in projects
+    ctrl = cln_str(ctrl)
+    trt = cln_str(trt)
+    request_data = request.get_json()
+    ##param =  cln_str(request_data['param'])
+    args = [f"{SCRIPTS}/t3drnaseq.R", PROJECTS, proj, id, ctrl, trt]
+
+    tmp = f"{PROJECTS}/{proj}/inputs/t3drnaseq_tmp"
+    os.mkdir(tmp)
+    shutil.copyfile(f"{PROJECTS}/{proj}/results/transcript_gene_mapping.csv", f"{tmp}/transcript_gene_mapping.csv")
+    expd = f"{PROJECTS}/{proj}/inputs/t3drnaseq_tmp/experimental_design.csv"
+    with open(expd, "w") as fo:
+        fo.write("RUN,SAMPLE,FACTOR,FOLDER\n")
+        for smp in request_data['samples']:
+            run, sample, factor = cln_str(smp).split(',')
+            fo.write(f"{run},{sample},{factor},quant_{sample}\n")
+
+    return make_job(proj, id, args, lock if lock > 0 else None)
+
 
 server()

@@ -1,4 +1,3 @@
-show("scritp obtido de https://github.com/wyguo/ThreeDRNAseq/blob/master/vignettes/user_manuals/3D_RNA-seq_command_line_user_manual.md")
 ### ---> ThreeDRNAseq R package
 library(ThreeDRNAseq)
 
@@ -17,13 +16,21 @@ library(ggrepel)
 options(stringsAsFactors = F)
 
 args <- commandArgs(trailingOnly = TRUE)
-label1 <- args[[1]]
-label2 <- args[[2]]
-tmp_dir <- args[[3]]
-qnt_dir <- args[[4]]
+
+projects <- args[[1]]
+project <- args[[2]]
+inputs <- paste0(projects, "/", project, "/", "inputs")
+results <- paste0(projects, "/", project, "/", "results")
+job <- args[[3]]
+ctrl <- args[[4]]
+trt <- args[[5]]
+
+label1 <- ctrl
+label2 <- trt
+tmp_dir <- paste0(inputs, "/", "t3drnaseq_tmp")
+qnt_dir <- paste0(inputs)
 
 show(paste("ARGS: ", label1, label2, tmp_dir, qnt_dir))
-
 setwd(tmp_dir)
 
 ## save to object
@@ -190,7 +197,6 @@ if (has_srep) {
 }
 
 show("==========> Step 1: Merge sequencing replicates    => OK")
-
 
 
 ################################################################################
@@ -881,508 +887,528 @@ DE_trans <- summaryDEtarget(
 DDD.data$DE_trans <- DE_trans
 
 ## ----->> DAS genes
+
+
 if (DAS_pval_method == "F-test") {
     DAS.stat <- trans_3D_stat$DAS.F.stat
 } else {
     DAS.stat <- trans_3D_stat$DAS.Simes.stat
 }
 
-lfc <- genes_3D_stat$DE.lfc
-lfc <- reshape2::melt(as.matrix(lfc))
-colnames(lfc) <- c("target", "contrast", "log2FC")
-DAS_genes <- summaryDAStarget(
-    stat = DAS.stat,
-    lfc = lfc,
-    cutoff = c(pval_cut, deltaPS_cut)
-)
-DDD.data$DAS_genes <- DAS_genes
+summaryDAStarget2 <- function(stat, lfc, cutoff = c(adj.pval = 0.01, deltaPS = 0.1)) {
+    names(cutoff) <- c("adj.pval", "deltaPS")
+    lfc <- lfc[which(lfc$target %in% stat$target), ]
+    stat <- merge(stat, lfc)
+    stat$up.down <- NULL
+    idx <- NULL
+    stat <- stat[idx, ]
+    return(stat)
+}
 
-## ----->> DTU trans
-lfc <- trans_3D_stat$DE.lfc
-lfc <- reshape2::melt(as.matrix(lfc))
-colnames(lfc) <- c("target", "contrast", "log2FC")
-DTU_trans <- summaryDAStarget(
-    stat = trans_3D_stat$DTU.stat,
-    lfc = lfc, cutoff = c(
-        adj.pval = pval_cut,
-        deltaPS = deltaPS_cut
+if (is.null(DAS.stat)) {
+    summaryDAStarget <- summaryDAStarget2
+    warning(" !!!!! NO DAS FOUND !!!!!!")
+} else {
+    lfc <- genes_3D_stat$DE.lfc
+    lfc <- reshape2::melt(as.matrix(lfc))
+    colnames(lfc) <- c("target", "contrast", "log2FC")
+
+
+    DAS_genes <- summaryDAStarget(
+        stat = DAS.stat,
+        lfc = lfc,
+        cutoff = c(pval_cut, deltaPS_cut)
     )
-)
-DDD.data$DTU_trans <- DTU_trans
-
-################################################################################
-## save csv
-write.csv(DE_genes, file = paste0(result.folder, "/DE genes.csv"), row.names = F)
-write.csv(DAS_genes, file = paste0(result.folder, "/DAS genes.csv"), row.names = F)
-write.csv(DE_trans, file = paste0(result.folder, "/DE transcripts.csv"), row.names = F)
-write.csv(DTU_trans, file = paste0(result.folder, "/DTU transcripts.csv"), row.names = F)
-
-################################################################################
-## ----->> target numbers
-DDD_numbers <- summary3Dnumber(
-    DE_genes = DE_genes,
-    DAS_genes = DAS_genes,
-    DE_trans = DE_trans,
-    DTU_trans = DTU_trans,
-    contrast = contrast
-)
-DDD_numbers
-write.csv(DDD_numbers,
-    file = paste0(result.folder, "/DE DAS DTU numbers.csv"),
-    row.names = F
-)
-DDD.data$DDD_numbers <- DDD_numbers
-################################################################################
-## ----->> DE vs DAS
-DEvsDAS_results <- DEvsDAS(
-    DE_genes = DE_genes,
-    DAS_genes = DAS_genes,
-    contrast = contrast
-)
-DEvsDAS_results
-DDD.data$DEvsDAS_results <- DEvsDAS_results
-write.csv(DEvsDAS_results,
-    file = paste0(result.folder, "/DE vs DAS gene number.csv"),
-    row.names = F
-)
 
 
-################################################################################
-## ----->> DE vs DTU
-DEvsDTU_results <- DEvsDTU(
-    DE_trans = DE_trans,
-    DTU_trans = DTU_trans,
-    contrast = contrast
-)
-DEvsDTU_results
-DDD.data$DEvsDTU_results <- DEvsDTU_results
-write.csv(DEvsDTU_results, file = paste0(result.folder, "/DE vs DTU transcript number.csv"), row.names = F)
+    DDD.data$DAS_genes <- DAS_genes
 
-
-show("==========> Step 4 Result summary")
-
-
-################################################################################
-## ----->> DE genes
-idx <- factor(DE_genes$contrast, levels = contrast)
-targets <- split(DE_genes, idx)
-data2plot <- lapply(contrast, function(i) {
-    if (nrow(targets[[i]]) == 0) {
-        x <- data.frame(contrast = i, regulation = c("down-regulated", "up-regulated"), number = 0)
-    } else {
-        x <- data.frame(contrast = i, table(targets[[i]]$up.down))
-        colnames(x) <- c("contrast", "regulation", "number")
-    }
-    x
-})
-data2plot <- do.call(rbind, data2plot)
-g.updown <- plotUpdown(data2plot, plot.title = "DE genes", contrast = contrast)
-print(g.updown)
-
-### save to figure
-png(paste0(figure.folder, "/DE genes up and down regulation numbers.png"),
-    width = length(contrast) * 5 / 2.54, 10 / 2.54, units = "in", res = 300
-)
-print(g.updown)
-dev.off()
-
-pdf(paste0(figure.folder, "/DE genes up and down regulation numbers.pdf"),
-    width = length(contrast) * 5 / 2.54, 10 / 2.54
-)
-print(g.updown)
-dev.off()
-
-################################################################################
-## ----->> DE trans
-idx <- factor(DE_trans$contrast, levels = contrast)
-targets <- split(DE_trans, idx)
-data2plot <- lapply(contrast, function(i) {
-    if (nrow(targets[[i]]) == 0) {
-        x <- data.frame(contrast = i, regulation = c("down-regulated", "up-regulated"), number = 0)
-    } else {
-        x <- data.frame(contrast = i, table(targets[[i]]$up.down))
-        colnames(x) <- c("contrast", "regulation", "number")
-    }
-    x
-})
-data2plot <- do.call(rbind, data2plot)
-g.updown <- plotUpdown(data2plot, plot.title = "DE trans", contrast = contrast)
-print(g.updown)
-
-### save to figure
-png(paste0(figure.folder, "/DE transcripts up and down regulation numbers.png"),
-    width = length(contrast) * 5 / 2.54, 10 / 2.54, units = "in", res = 300
-)
-print(g.updown)
-dev.off()
-
-pdf(paste0(figure.folder, "/DE transcripts up and down regulation numbers.pdf"),
-    width = length(contrast) * 5 / 2.54, 10 / 2.54
-)
-print(g.updown)
-dev.off()
-
-
-
-
-top.n <- 10
-size <- 1
-col0 <- "black"
-col1 <- "red"
-idx <- c("DE genes", "DAS genes", "DE transcripts", "DTU transcripts")
-title.idx <- c(
-    paste0(
-        "Volcano plot: DE genes (Low expression filtered; \nAdjusted p<",
-        pval_cut, "; |L2FC|>=", l2fc_cut, "; Labels: top ",
-        top.n, " distance to (0,0))"
-    ),
-    paste0(
-        "Volcano plot: DAS genes (Low expression filtered; \nAdjusted p<",
-        pval_cut, "; |MaxdeltaPS|>=", deltaPS_cut, "; Labels: top ",
-        top.n, " distance to (0,0))"
-    ),
-    paste0(
-        "Volcano plot: DE transcripts (Low expression filtered; \nAdjusted p<",
-        pval_cut, "; |L2FC|>=", l2fc_cut, "; Labels: top ",
-        top.n, " distance to (0,0))"
-    ),
-    paste0(
-        "Volcano plot: DTU transcripts (Low expression filtered; \nAdjusted p<",
-        pval_cut, "; |deltaPS|>=", deltaPS_cut, "; Labels: top ",
-        top.n, " distance to (0,0))"
+    ## ----->> DTU trans
+    lfc <- trans_3D_stat$DE.lfc
+    lfc <- reshape2::melt(as.matrix(lfc))
+    colnames(lfc) <- c("target", "contrast", "log2FC")
+    DTU_trans <- summaryDAStarget(
+        stat = trans_3D_stat$DTU.stat,
+        lfc = lfc, cutoff = c(
+            adj.pval = pval_cut,
+            deltaPS = deltaPS_cut
+        )
     )
-)
-names(title.idx) <- idx
-g <- lapply(idx, function(i) {
-    if (i == "DE genes") {
-        DDD.stat <- genes_3D_stat$DE.stat
-        data2plot <- data.frame(
-            target = DDD.stat$target,
-            contrast = DDD.stat$contrast,
-            x = DDD.stat$log2FC,
-            y = -log10(DDD.stat$adj.pval)
-        )
-        data2plot$significance <- "Not significant"
-        data2plot$significance[DDD.stat$adj.pval < pval_cut &
-            abs(DDD.stat$log2FC) >= l2fc_cut] <- "Significant"
-        q <- plotVolcano(
-            data2plot = data2plot, xlab = "log2FC of genes", ylab = "-log10(FDR)",
-            title = title.idx[i],
-            col0 = col0, col1 = col1, size = size, top.n = top.n
-        )
-    }
+    DDD.data$DTU_trans <- DTU_trans
 
-    if (i == "DAS genes") {
-        if (DAS_pval_method == "F-test") {
-            DDD.stat <- trans_3D_stat$DAS.F.stat
+    ################################################################################
+    ## save csv
+    write.csv(DE_genes, file = paste0(result.folder, "/DE genes.csv"), row.names = F)
+    write.csv(DAS_genes, file = paste0(result.folder, "/DAS genes.csv"), row.names = F)
+    write.csv(DE_trans, file = paste0(result.folder, "/DE transcripts.csv"), row.names = F)
+    write.csv(DTU_trans, file = paste0(result.folder, "/DTU transcripts.csv"), row.names = F)
+
+    ################################################################################
+    ## ----->> target numbers
+    DDD_numbers <- summary3Dnumber(
+        DE_genes = DE_genes,
+        DAS_genes = DAS_genes,
+        DE_trans = DE_trans,
+        DTU_trans = DTU_trans,
+        contrast = contrast
+    )
+    DDD_numbers
+    write.csv(DDD_numbers,
+        file = paste0(result.folder, "/DE DAS DTU numbers.csv"),
+        row.names = F
+    )
+    DDD.data$DDD_numbers <- DDD_numbers
+    ################################################################################
+    ## ----->> DE vs DAS
+    DEvsDAS_results <- DEvsDAS(
+        DE_genes = DE_genes,
+        DAS_genes = DAS_genes,
+        contrast = contrast
+    )
+    DEvsDAS_results
+    DDD.data$DEvsDAS_results <- DEvsDAS_results
+    write.csv(DEvsDAS_results,
+        file = paste0(result.folder, "/DE vs DAS gene number.csv"),
+        row.names = F
+    )
+
+
+    ################################################################################
+    ## ----->> DE vs DTU
+    DEvsDTU_results <- DEvsDTU(
+        DE_trans = DE_trans,
+        DTU_trans = DTU_trans,
+        contrast = contrast
+    )
+    DEvsDTU_results
+    DDD.data$DEvsDTU_results <- DEvsDTU_results
+    write.csv(DEvsDTU_results, file = paste0(result.folder, "/DE vs DTU transcript number.csv"), row.names = F)
+
+
+    show("==========> Step 4 Result summary")
+
+
+    ################################################################################
+    ## ----->> DE genes
+    idx <- factor(DE_genes$contrast, levels = contrast)
+    targets <- split(DE_genes, idx)
+    data2plot <- lapply(contrast, function(i) {
+        if (nrow(targets[[i]]) == 0) {
+            x <- data.frame(contrast = i, regulation = c("down-regulated", "up-regulated"), number = 0)
         } else {
-            DDD.stat <- trans_3D_stat$DAS.simes.stat
+            x <- data.frame(contrast = i, table(targets[[i]]$up.down))
+            colnames(x) <- c("contrast", "regulation", "number")
         }
-        data2plot <- data.frame(
-            target = DDD.stat$target,
-            contrast = DDD.stat$contrast,
-            x = DDD.stat$maxdeltaPS,
-            y = -log10(DDD.stat$adj.pval)
-        )
-        data2plot$significance <- "Not significant"
-        data2plot$significance[DDD.stat$adj.pval < pval_cut &
-            abs(DDD.stat$maxdeltaPS) >= deltaPS_cut] <- "Significant"
-        q <- plotVolcano(
-            data2plot = data2plot,
-            xlab = "MaxdeltaPS of transcripts in each gene", ylab = "-log10(FDR)",
-            title = title.idx[i], col0 = col0, col1 = col1, size = size,
-            top.n = top.n
-        )
-    }
+        x
+    })
+    data2plot <- do.call(rbind, data2plot)
+    g.updown <- plotUpdown(data2plot, plot.title = "DE genes", contrast = contrast)
+    print(g.updown)
 
-    if (i == "DE transcripts") {
-        DDD.stat <- trans_3D_stat$DE.stat
-        data2plot <- data.frame(
-            target = DDD.stat$target,
-            contrast = DDD.stat$contrast,
-            x = DDD.stat$log2FC,
-            y = -log10(DDD.stat$adj.pval)
-        )
-        data2plot$significance <- "Not significant"
-        data2plot$significance[DDD.stat$adj.pval < pval_cut &
-            abs(DDD.stat$log2FC) >= l2fc_cut] <- "Significant"
-        q <- plotVolcano(
-            data2plot = data2plot, xlab = "log2FC of transcripts",
-            ylab = "-log10(FDR)", title = title.idx[i],
-            col0 = col0, col1 = col1, size = size, top.n = top.n
-        )
-    }
-
-    if (i == "DTU transcripts") {
-        DDD.stat <- trans_3D_stat$DTU.stat
-        data2plot <- data.frame(
-            target = DDD.stat$target,
-            contrast = DDD.stat$contrast,
-            x = DDD.stat$deltaPS,
-            y = -log10(DDD.stat$adj.pval)
-        )
-        data2plot$significance <- "Not significant"
-        data2plot$significance[DDD.stat$adj.pval < pval_cut &
-            abs(DDD.stat$deltaPS) >= deltaPS_cut] <- "Significant"
-        q <- plotVolcano(
-            data2plot = data2plot,
-            xlab = "deltaPS of transcripts", ylab = "-log10(FDR)",
-            title = title.idx[i],
-            col0 = col0, col1 = col1, size = size, top.n = top.n
-        )
-    }
-    q
-})
-names(g) <- idx
-
-######################################################################
-## ----->> save plot
-lapply(names(g), function(i) {
-    message(i)
-    png(paste0(figure.folder, "/", i, " volcano plot.png"),
-        width = 10, height = 6, units = "in",
-        res = 150
+    ### save to figure
+    png(paste0(figure.folder, "/DE genes up and down regulation numbers.png"),
+        width = length(contrast) * 5 / 2.54, 10 / 2.54, units = "in", res = 300
     )
-    print(g[[i]])
+    print(g.updown)
     dev.off()
 
-    pdf(paste0(figure.folder, "/", i, " volcano plot.pdf"),
-        width = 10, height = 6
+    pdf(paste0(figure.folder, "/DE genes up and down regulation numbers.pdf"),
+        width = length(contrast) * 5 / 2.54, 10 / 2.54
     )
-    print(g[[i]])
+    print(g.updown)
     dev.off()
-})
 
-################################################################################
-## ----->> DE vs DAS genes
-DE.genes <- unique(DE_genes$target)
-DAS.genes <- unique(DAS_genes$target)
-genes.flow.chart <- function() {
-    plotFlowChart(
-        expressed = target_high$genes_high,
-        x = DE.genes,
-        y = DAS.genes,
-        type = "genes",
-        pval.cutoff = pval_cut, lfc.cutoff = l2fc_cut,
-        deltaPS.cutoff = deltaPS_cut
+    ################################################################################
+    ## ----->> DE trans
+    idx <- factor(DE_trans$contrast, levels = contrast)
+    targets <- split(DE_trans, idx)
+    data2plot <- lapply(contrast, function(i) {
+        if (nrow(targets[[i]]) == 0) {
+            x <- data.frame(contrast = i, regulation = c("down-regulated", "up-regulated"), number = 0)
+        } else {
+            x <- data.frame(contrast = i, table(targets[[i]]$up.down))
+            colnames(x) <- c("contrast", "regulation", "number")
+        }
+        x
+    })
+    data2plot <- do.call(rbind, data2plot)
+    g.updown <- plotUpdown(data2plot, plot.title = "DE trans", contrast = contrast)
+    print(g.updown)
+
+    ### save to figure
+    png(paste0(figure.folder, "/DE transcripts up and down regulation numbers.png"),
+        width = length(contrast) * 5 / 2.54, 10 / 2.54, units = "in", res = 300
     )
-}
-genes.flow.chart()
+    print(g.updown)
+    dev.off()
 
-
-png(
-    filename = paste0(figure.folder, "/Union set DE genes vs DAS genes.png"),
-    width = 22 / 2.54, height = 13 / 2.54, units = "in", res = 300
-)
-genes.flow.chart()
-dev.off()
-
-pdf(
-    file = paste0(figure.folder, "/Union set DE genes vs DAS genes.pdf"),
-    width = 22 / 2.54, height = 13 / 2.54
-)
-genes.flow.chart()
-dev.off()
-
-################################################################################
-## ----->> DE vs DTU transcripts
-DE.trans <- unique(DE_trans$target)
-DTU.trans <- unique(DTU_trans$target)
-
-trans.flow.chart <- function() {
-    plotFlowChart(
-        expressed = target_high$trans_high,
-        x = DE.trans,
-        y = DTU.trans,
-        type = "transcripts",
-        pval.cutoff = pval_cut,
-        lfc.cutoff = l2fc_cut,
-        deltaPS.cutoff = deltaPS_cut
+    pdf(paste0(figure.folder, "/DE transcripts up and down regulation numbers.pdf"),
+        width = length(contrast) * 5 / 2.54, 10 / 2.54
     )
+    print(g.updown)
+    dev.off()
+
+
+
+
+    top.n <- 10
+    size <- 1
+    col0 <- "black"
+    col1 <- "red"
+    idx <- c("DE genes", "DAS genes", "DE transcripts", "DTU transcripts")
+    title.idx <- c(
+        paste0(
+            "Volcano plot: DE genes (Low expression filtered; \nAdjusted p<",
+            pval_cut, "; |L2FC|>=", l2fc_cut, "; Labels: top ",
+            top.n, " distance to (0,0))"
+        ),
+        paste0(
+            "Volcano plot: DAS genes (Low expression filtered; \nAdjusted p<",
+            pval_cut, "; |MaxdeltaPS|>=", deltaPS_cut, "; Labels: top ",
+            top.n, " distance to (0,0))"
+        ),
+        paste0(
+            "Volcano plot: DE transcripts (Low expression filtered; \nAdjusted p<",
+            pval_cut, "; |L2FC|>=", l2fc_cut, "; Labels: top ",
+            top.n, " distance to (0,0))"
+        ),
+        paste0(
+            "Volcano plot: DTU transcripts (Low expression filtered; \nAdjusted p<",
+            pval_cut, "; |deltaPS|>=", deltaPS_cut, "; Labels: top ",
+            top.n, " distance to (0,0))"
+        )
+    )
+    names(title.idx) <- idx
+    g <- lapply(idx, function(i) {
+        if (i == "DE genes") {
+            DDD.stat <- genes_3D_stat$DE.stat
+            data2plot <- data.frame(
+                target = DDD.stat$target,
+                contrast = DDD.stat$contrast,
+                x = DDD.stat$log2FC,
+                y = -log10(DDD.stat$adj.pval)
+            )
+            data2plot$significance <- "Not significant"
+            data2plot$significance[DDD.stat$adj.pval < pval_cut &
+                abs(DDD.stat$log2FC) >= l2fc_cut] <- "Significant"
+            q <- plotVolcano(
+                data2plot = data2plot, xlab = "log2FC of genes", ylab = "-log10(FDR)",
+                title = title.idx[i],
+                col0 = col0, col1 = col1, size = size, top.n = top.n
+            )
+        }
+
+        if (i == "DAS genes") {
+            if (DAS_pval_method == "F-test") {
+                DDD.stat <- trans_3D_stat$DAS.F.stat
+            } else {
+                DDD.stat <- trans_3D_stat$DAS.simes.stat
+            }
+            data2plot <- data.frame(
+                target = DDD.stat$target,
+                contrast = DDD.stat$contrast,
+                x = DDD.stat$maxdeltaPS,
+                y = -log10(DDD.stat$adj.pval)
+            )
+            data2plot$significance <- "Not significant"
+            data2plot$significance[DDD.stat$adj.pval < pval_cut &
+                abs(DDD.stat$maxdeltaPS) >= deltaPS_cut] <- "Significant"
+            q <- plotVolcano(
+                data2plot = data2plot,
+                xlab = "MaxdeltaPS of transcripts in each gene", ylab = "-log10(FDR)",
+                title = title.idx[i], col0 = col0, col1 = col1, size = size,
+                top.n = top.n
+            )
+        }
+
+        if (i == "DE transcripts") {
+            DDD.stat <- trans_3D_stat$DE.stat
+            data2plot <- data.frame(
+                target = DDD.stat$target,
+                contrast = DDD.stat$contrast,
+                x = DDD.stat$log2FC,
+                y = -log10(DDD.stat$adj.pval)
+            )
+            data2plot$significance <- "Not significant"
+            data2plot$significance[DDD.stat$adj.pval < pval_cut &
+                abs(DDD.stat$log2FC) >= l2fc_cut] <- "Significant"
+            q <- plotVolcano(
+                data2plot = data2plot, xlab = "log2FC of transcripts",
+                ylab = "-log10(FDR)", title = title.idx[i],
+                col0 = col0, col1 = col1, size = size, top.n = top.n
+            )
+        }
+
+        if (i == "DTU transcripts") {
+            DDD.stat <- trans_3D_stat$DTU.stat
+            data2plot <- data.frame(
+                target = DDD.stat$target,
+                contrast = DDD.stat$contrast,
+                x = DDD.stat$deltaPS,
+                y = -log10(DDD.stat$adj.pval)
+            )
+            data2plot$significance <- "Not significant"
+            data2plot$significance[DDD.stat$adj.pval < pval_cut &
+                abs(DDD.stat$deltaPS) >= deltaPS_cut] <- "Significant"
+            q <- plotVolcano(
+                data2plot = data2plot,
+                xlab = "deltaPS of transcripts", ylab = "-log10(FDR)",
+                title = title.idx[i],
+                col0 = col0, col1 = col1, size = size, top.n = top.n
+            )
+        }
+        q
+    })
+    names(g) <- idx
+
+    ######################################################################
+    ## ----->> save plot
+    lapply(names(g), function(i) {
+        message(i)
+        png(paste0(figure.folder, "/", i, " volcano plot.png"),
+            width = 10, height = 6, units = "in",
+            res = 150
+        )
+        print(g[[i]])
+        dev.off()
+
+        pdf(paste0(figure.folder, "/", i, " volcano plot.pdf"),
+            width = 10, height = 6
+        )
+        print(g[[i]])
+        dev.off()
+    })
+
+    ################################################################################
+    ## ----->> DE vs DAS genes
+    DE.genes <- unique(DE_genes$target)
+    DAS.genes <- unique(DAS_genes$target)
+    genes.flow.chart <- function() {
+        plotFlowChart(
+            expressed = target_high$genes_high,
+            x = DE.genes,
+            y = DAS.genes,
+            type = "genes",
+            pval.cutoff = pval_cut, lfc.cutoff = l2fc_cut,
+            deltaPS.cutoff = deltaPS_cut
+        )
+    }
+    genes.flow.chart()
+
+
+    png(
+        filename = paste0(figure.folder, "/Union set DE genes vs DAS genes.png"),
+        width = 22 / 2.54, height = 13 / 2.54, units = "in", res = 300
+    )
+    genes.flow.chart()
+    dev.off()
+
+    pdf(
+        file = paste0(figure.folder, "/Union set DE genes vs DAS genes.pdf"),
+        width = 22 / 2.54, height = 13 / 2.54
+    )
+    genes.flow.chart()
+    dev.off()
+
+    ################################################################################
+    ## ----->> DE vs DTU transcripts
+    DE.trans <- unique(DE_trans$target)
+    DTU.trans <- unique(DTU_trans$target)
+
+    trans.flow.chart <- function() {
+        plotFlowChart(
+            expressed = target_high$trans_high,
+            x = DE.trans,
+            y = DTU.trans,
+            type = "transcripts",
+            pval.cutoff = pval_cut,
+            lfc.cutoff = l2fc_cut,
+            deltaPS.cutoff = deltaPS_cut
+        )
+    }
+
+    trans.flow.chart()
+
+    png(
+        filename = paste0(figure.folder, "/Union set DE transcripts vs DTU transcripts.png"),
+        width = 22 / 2.54, height = 13 / 2.54, units = "in", res = 300
+    )
+    trans.flow.chart()
+    dev.off()
+
+    pdf(
+        file = paste0(figure.folder, "/Union set DE transcripts vs DTU transcripts.pdf"),
+        width = 22 / 2.54, height = 13 / 2.54
+    )
+    trans.flow.chart()
+    dev.off()
+
+
+    contrast.idx <- contrast[1]
+    ################################################################################
+    ## ----->> DE vs DAS genes
+    x <- unlist(DEvsDAS_results[DEvsDAS_results$Contrast == contrast.idx, -1])
+    if (length(x) == 0) {
+        message("No DE and/or DAS genes")
+    } else {
+        names(x) <- c("DE", "DE&DAS", "DAS")
+        g <- plotEulerDiagram(x = x, fill = gg.color.hue(2))
+        g
+        grid.arrange(g, top = textGrob("DE vs DAS genes", gp = gpar(cex = 1.2)))
+    }
+
+    ################################################################################
+    ## ----->> DE vs DTU transcripts
+    x <- unlist(DEvsDTU_results[DEvsDTU_results$Contrast == contrast.idx, -1])
+    if (length(x) == 0) {
+        message("No DE and/or DTU transcripts")
+    } else {
+        names(x) <- c("DE", "DE&DTU", "DTU")
+        g <- plotEulerDiagram(x = x, fill = gg.color.hue(2))
+        g
+        grid.arrange(g, top = textGrob("DE vs DTU transcripts", gp = gpar(cex = 1.2)))
+    }
+
+    show("==========> Step 5 Make plot")
+
+    ################################################################################
+    ## ----->> DE genes
+    targets <- unique(DE_genes$target)
+    data2heatmap <- txi_genes$abundance[targets, ]
+    column_title <- paste0(length(targets), " DE genes")
+    data2plot <- rowmean(
+        x = t(data2heatmap),
+        group = metatable$label,
+        reorder = F
+    )
+    data2plot <- t(scale(data2plot))
+    hc.dist <- dist(data2plot, method = dist_method)
+    hc <- fastcluster::hclust(hc.dist, method = cluster_method)
+    clusters <- cutree(hc, k = cluster_number)
+    clusters <- reorderClusters(clusters = clusters, dat = data2plot)
+
+    ### save the target list in each cluster to result folder
+    x <- split(names(clusters), clusters)
+    x <- lapply(names(x), function(i) {
+        data.frame(Clusters = i, Targets = x[[i]])
+    })
+    x <- do.call(rbind, x)
+    colnames(x) <- c("Clusters", "Targets")
+
+    g <- Heatmap(as.matrix(data2plot),
+        name = "Z-scores",
+        cluster_rows = TRUE,
+        clustering_method_rows = cluster_method,
+        row_dend_reorder = T,
+        show_row_names = FALSE,
+        show_column_names = ifelse(ncol(data2plot) > 10, F, T),
+        cluster_columns = FALSE,
+        split = clusters,
+        column_title = column_title
+    )
+
+    draw(g, column_title = "Conditions", column_title_side = "bottom")
+
+    ### save to figure
+    png(paste0(figure.folder, "/Heatmap DE genes.png"),
+        width = pmax(10, 1 * length(unique(metatable$label))) / 2.54, height = 20 / 2.54,
+        units = "in", res = 300
+    )
+    draw(g, column_title = "Conditions", column_title_side = "bottom")
+    dev.off()
+    pdf(paste0(figure.folder, "/Heatmap DE genes.pdf"),
+        width = pmax(10, 1 * length(unique(metatable$label))) / 2.54, height = 20 / 2.54
+    )
+    draw(g, column_title = "Conditions", column_title_side = "bottom")
+    dev.off()
+
+
+    ################################################################################
+    ## ----->> DAS genes
+    targets <- unique(DAS_genes$target)
+    data2heatmap <- txi_genes$abundance[targets, ]
+    column_title <- paste0(length(targets), " DAS genes")
+    data2plot <- rowmean(x = t(data2heatmap), group = metatable$label, reorder = F)
+    data2plot <- t(scale(data2plot))
+    hc.dist <- dist(data2plot, method = dist_method)
+    hc <- fastcluster::hclust(hc.dist, method = cluster_method)
+    clusters <- cutree(hc, k = cluster_number)
+    clusters <- reorderClusters(clusters = clusters, dat = data2plot)
+
+
+    ### save the target list in each cluster to result folder
+    x <- split(names(clusters), clusters)
+    x <- lapply(names(x), function(i) {
+        data.frame(Clusters = i, Targets = x[[i]])
+    })
+    x <- do.call(rbind, x)
+    colnames(x) <- c("Clusters", "Targets")
+    write.csv(x,
+        file = paste0(result.folder, "/Target in each cluster heatmap ", column_title, ".csv"),
+        row.names = F
+    )
+    ###############################
+    g <- Heatmap(as.matrix(data2plot),
+        name = "Z-scores",
+        cluster_rows = TRUE,
+        clustering_method_rows = cluster_method,
+        row_dend_reorder = T,
+        show_row_names = FALSE,
+        show_column_names = ifelse(ncol(data2plot) > 10, F, T),
+        cluster_columns = FALSE,
+        split = clusters,
+        column_title = column_title
+    )
+
+    draw(g, column_title = "Conditions", column_title_side = "bottom")
+
+    ### save to figure
+    png(paste0(figure.folder, "/Heatmap DAS genes.png"),
+        width = pmax(10, 1 * length(unique(metatable$label))) / 2.54, height = 20 / 2.54, units = "in", res = 300
+    )
+    draw(g, column_title = "Conditions", column_title_side = "bottom")
+    dev.off()
+    pdf(paste0(figure.folder, "/Heatmap DAS genes.pdf"),
+        width = pmax(10, 1 * length(unique(metatable$label))) / 2.54, height = 20 / 2.54
+    )
+    draw(g, column_title = "Conditions", column_title_side = "bottom")
+    dev.off()
+
+
+    show("==========> Step 6 HEATMAP    OK")
+
+    params_list <- list()
+    params_list$condition_n <- length(unique((metatable_new$label)))
+    params_list$brep_n <- length(unique(metatable[, brep_col]))
+    # params_list$srep_n = length(unique(metatable[,srep_col]))
+    params_list$samples_n <- nrow(metatable_new)
+    params_list$has_srep <- has_srep
+    params_list$quant_method <- quant_method
+    params_list$tximport_method <- tximport_method
+    params_list$cpm_cut <- cpm_cut
+    params_list$cpm_samples_n <- cpm_samples_n
+    params_list$norm_method <- norm_method
+    params_list$has_batcheffect <- has_batcheffect
+    params_list$RUVseq_method <- RUVseq_method
+    params_list$contrast <- contrast
+    params_list$DE_pipeline <- DE_pipeline
+    params_list$pval_adj_method <- pval_adj_method
+    params_list$pval_cut <- pval_cut
+    params_list$l2fc_cut <- l2fc_cut
+    params_list$deltaPS_cut <- deltaPS_cut
+    params_list$DAS_pval_method <- DAS_pval_method
+
+    ## heatmap
+    params_list$dist_method <- dist_method
+    params_list$cluster_method <- cluster_method
+    params_list$cluster_number <- cluster_number
+
+
+
+    DDD.data$conditions <- metatable$label
+    DDD.data$params_list <- params_list
+    save(DDD.data, file = paste0(data.folder, "/DDD.data.RData"))
 }
-
-trans.flow.chart()
-
-png(
-    filename = paste0(figure.folder, "/Union set DE transcripts vs DTU transcripts.png"),
-    width = 22 / 2.54, height = 13 / 2.54, units = "in", res = 300
-)
-trans.flow.chart()
-dev.off()
-
-pdf(
-    file = paste0(figure.folder, "/Union set DE transcripts vs DTU transcripts.pdf"),
-    width = 22 / 2.54, height = 13 / 2.54
-)
-trans.flow.chart()
-dev.off()
-
-
-contrast.idx <- contrast[1]
-################################################################################
-## ----->> DE vs DAS genes
-x <- unlist(DEvsDAS_results[DEvsDAS_results$Contrast == contrast.idx, -1])
-if (length(x) == 0) {
-    message("No DE and/or DAS genes")
-} else {
-    names(x) <- c("DE", "DE&DAS", "DAS")
-    g <- plotEulerDiagram(x = x, fill = gg.color.hue(2))
-    g
-    grid.arrange(g, top = textGrob("DE vs DAS genes", gp = gpar(cex = 1.2)))
-}
-
-################################################################################
-## ----->> DE vs DTU transcripts
-x <- unlist(DEvsDTU_results[DEvsDTU_results$Contrast == contrast.idx, -1])
-if (length(x) == 0) {
-    message("No DE and/or DTU transcripts")
-} else {
-    names(x) <- c("DE", "DE&DTU", "DTU")
-    g <- plotEulerDiagram(x = x, fill = gg.color.hue(2))
-    g
-    grid.arrange(g, top = textGrob("DE vs DTU transcripts", gp = gpar(cex = 1.2)))
-}
-
-show("==========> Step 5 Make plot")
-
-################################################################################
-## ----->> DE genes
-targets <- unique(DE_genes$target)
-data2heatmap <- txi_genes$abundance[targets, ]
-column_title <- paste0(length(targets), " DE genes")
-data2plot <- rowmean(
-    x = t(data2heatmap),
-    group = metatable$label,
-    reorder = F
-)
-data2plot <- t(scale(data2plot))
-hc.dist <- dist(data2plot, method = dist_method)
-hc <- fastcluster::hclust(hc.dist, method = cluster_method)
-clusters <- cutree(hc, k = cluster_number)
-clusters <- reorderClusters(clusters = clusters, dat = data2plot)
-
-### save the target list in each cluster to result folder
-x <- split(names(clusters), clusters)
-x <- lapply(names(x), function(i) {
-    data.frame(Clusters = i, Targets = x[[i]])
-})
-x <- do.call(rbind, x)
-colnames(x) <- c("Clusters", "Targets")
-
-g <- Heatmap(as.matrix(data2plot),
-    name = "Z-scores",
-    cluster_rows = TRUE,
-    clustering_method_rows = cluster_method,
-    row_dend_reorder = T,
-    show_row_names = FALSE,
-    show_column_names = ifelse(ncol(data2plot) > 10, F, T),
-    cluster_columns = FALSE,
-    split = clusters,
-    column_title = column_title
-)
-
-draw(g, column_title = "Conditions", column_title_side = "bottom")
-
-### save to figure
-png(paste0(figure.folder, "/Heatmap DE genes.png"),
-    width = pmax(10, 1 * length(unique(metatable$label))) / 2.54, height = 20 / 2.54,
-    units = "in", res = 300
-)
-draw(g, column_title = "Conditions", column_title_side = "bottom")
-dev.off()
-pdf(paste0(figure.folder, "/Heatmap DE genes.pdf"),
-    width = pmax(10, 1 * length(unique(metatable$label))) / 2.54, height = 20 / 2.54
-)
-draw(g, column_title = "Conditions", column_title_side = "bottom")
-dev.off()
-
-
-################################################################################
-## ----->> DAS genes
-targets <- unique(DAS_genes$target)
-data2heatmap <- txi_genes$abundance[targets, ]
-column_title <- paste0(length(targets), " DAS genes")
-data2plot <- rowmean(x = t(data2heatmap), group = metatable$label, reorder = F)
-data2plot <- t(scale(data2plot))
-hc.dist <- dist(data2plot, method = dist_method)
-hc <- fastcluster::hclust(hc.dist, method = cluster_method)
-clusters <- cutree(hc, k = cluster_number)
-clusters <- reorderClusters(clusters = clusters, dat = data2plot)
-
-
-### save the target list in each cluster to result folder
-x <- split(names(clusters), clusters)
-x <- lapply(names(x), function(i) {
-    data.frame(Clusters = i, Targets = x[[i]])
-})
-x <- do.call(rbind, x)
-colnames(x) <- c("Clusters", "Targets")
-write.csv(x,
-    file = paste0(result.folder, "/Target in each cluster heatmap ", column_title, ".csv"),
-    row.names = F
-)
-###############################
-g <- Heatmap(as.matrix(data2plot),
-    name = "Z-scores",
-    cluster_rows = TRUE,
-    clustering_method_rows = cluster_method,
-    row_dend_reorder = T,
-    show_row_names = FALSE,
-    show_column_names = ifelse(ncol(data2plot) > 10, F, T),
-    cluster_columns = FALSE,
-    split = clusters,
-    column_title = column_title
-)
-
-draw(g, column_title = "Conditions", column_title_side = "bottom")
-
-### save to figure
-png(paste0(figure.folder, "/Heatmap DAS genes.png"),
-    width = pmax(10, 1 * length(unique(metatable$label))) / 2.54, height = 20 / 2.54, units = "in", res = 300
-)
-draw(g, column_title = "Conditions", column_title_side = "bottom")
-dev.off()
-pdf(paste0(figure.folder, "/Heatmap DAS genes.pdf"),
-    width = pmax(10, 1 * length(unique(metatable$label))) / 2.54, height = 20 / 2.54
-)
-draw(g, column_title = "Conditions", column_title_side = "bottom")
-dev.off()
-
-
-show("==========> Step 6 HEATMAP    OK")
-
-params_list <- list()
-params_list$condition_n <- length(unique((metatable_new$label)))
-params_list$brep_n <- length(unique(metatable[, brep_col]))
-# params_list$srep_n = length(unique(metatable[,srep_col]))
-params_list$samples_n <- nrow(metatable_new)
-params_list$has_srep <- has_srep
-params_list$quant_method <- quant_method
-params_list$tximport_method <- tximport_method
-params_list$cpm_cut <- cpm_cut
-params_list$cpm_samples_n <- cpm_samples_n
-params_list$norm_method <- norm_method
-params_list$has_batcheffect <- has_batcheffect
-params_list$RUVseq_method <- RUVseq_method
-params_list$contrast <- contrast
-params_list$DE_pipeline <- DE_pipeline
-params_list$pval_adj_method <- pval_adj_method
-params_list$pval_cut <- pval_cut
-params_list$l2fc_cut <- l2fc_cut
-params_list$deltaPS_cut <- deltaPS_cut
-params_list$DAS_pval_method <- DAS_pval_method
-
-## heatmap
-params_list$dist_method <- dist_method
-params_list$cluster_method <- cluster_method
-params_list$cluster_number <- cluster_number
-
-
-
-DDD.data$conditions <- metatable$label
-DDD.data$params_list <- params_list
-save(DDD.data, file = paste0(data.folder, "/DDD.data.RData"))
-
 show(" ... SALVANDO RESULTADOS ... ")
 
 
@@ -1429,26 +1455,27 @@ write.csv(
     ),
     row.names = F, na = ""
 )
-
-if (DDD.data$params_list$DAS_pval_method == "F-test") {
-    write.csv(
-        x = DDD.data$trans_3D_stat$DAS.F.stat,
-        file = paste0(
-            DDD.data$result.folder,
-            "/DAS genes testing statistics.csv"
-        ),
-        row.names = F, na = ""
-    )
-}
-if (DDD.data$params_list$DAS_pval_method == "Simes") {
-    write.csv(
-        x = DDD.data$trans_3D_stat$DAS.simes.stat,
-        file = paste0(
-            DDD.data$result.folder,
-            "/DAS genes testing statistics.csv"
-        ),
-        row.names = F, na = ""
-    )
+if (!is.null(DAS.stat)) {
+    if (DDD.data$params_list$DAS_pval_method == "F-test") {
+        write.csv(
+            x = DDD.data$trans_3D_stat$DAS.F.stat,
+            file = paste0(
+                DDD.data$result.folder,
+                "/DAS genes testing statistics.csv"
+            ),
+            row.names = F, na = ""
+        )
+    }
+    if (DDD.data$params_list$DAS_pval_method == "Simes") {
+        write.csv(
+            x = DDD.data$trans_3D_stat$DAS.simes.stat,
+            file = paste0(
+                DDD.data$result.folder,
+                "/DAS genes testing statistics.csv"
+            ),
+            row.names = F, na = ""
+        )
+    }
 }
 write.csv(
     x = DDD.data$trans_3D_stat$DTU.stat,
@@ -1458,4 +1485,4 @@ write.csv(
     ),
     row.names = F, na = ""
 )
-show("TERMINADO COM SUCESSO !!!")
+show("TERMINADO_COM_SUCESSO")

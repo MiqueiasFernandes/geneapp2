@@ -54,6 +54,7 @@ class CMD implements ICommand {
     status?: string | undefined;
     info?: string = 'bash command';
     meta?: string = 'step 0';
+    payload?: string | undefined;
 
     arg1?: string | undefined;
     arg2?: string | undefined;
@@ -161,6 +162,9 @@ export class CMD_Holder extends CMD {
         if (!this.arg4) { this.arg4 = tsp; return this };
         if (!this.arg5) { this.arg5 = tsp; return this };
         if (!this.arg6) { this.arg6 = tsp; return this };
+        if (!this.arg7) { this.arg7 = tsp; return this };
+        if (!this.arg8) { this.arg8 = tsp; return this };
+        if (!this.arg9) { this.arg9 = tsp; return this };
         return this
     }
 }
@@ -244,5 +248,42 @@ export class CMD_Quantify extends CMD {
     sample(file: string) { this.arg1 = file; this.info = this.info.replace("?", file); return this }
     index(name: string) { this.arg2 = name; this.info = this.info.replace("@", name); return this }
     args(args: string) { this.arg3 = args; return this }
+
+}
+
+export class CMD_Rmats extends CMD {
+
+    //bam1, bam2, rlen, param = command.arg1, command.arg2, command.arg3, command.arg4
+    op = 14;
+    info = 'run rMATS';
+
+    fill() {
+        const bams1 = this.prj.samples.filter(s => s.group == this.prj.control);
+        const bams2 = this.prj.samples.filter(s => s.group == this.prj.treatment);
+        this.arg1 = bams1.map(s => `${s.name}.idx_genoma.bam`).join(",");
+        this.arg2 = bams2.map(s => `${s.name}.idx_genoma.bam`).join(",");
+        this.arg3 = this.prj.rmats_readLength.toString();
+        this.arg4 = "-t single";
+        return this;
+    }
+
+    args(args: string) { this.arg3 = args; return this }
+
+}
+
+export class CMD_T3drnaseq extends CMD {
+
+    op = 15;
+    info = 'run 3DRNASeq';
+
+    fill() {
+        this.arg1 = this.prj.control;
+        this.arg2 = this.prj.treatment;
+
+        //RUN,SAMPLE,FACTOR,FOLDER
+        this.payload = this.prj.samples.map(s => `${s.acession},${s.name},${s.group}`).join("\n")
+
+        return this;
+    }
 
 }
