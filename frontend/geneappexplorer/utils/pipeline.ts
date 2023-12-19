@@ -97,49 +97,42 @@ export default class Pipeline {
 
     public async main(): Promise<ICommand[]> {
 
-       return [await new CMD_Rmats(this.project)
-        .fill().args(this.args.rmats)
-        .step(4).enqueue(),
-       await new CMD_T3drnaseq(this.project)
-        .fill().args(this.args.t3drna)
-        .step(4).enqueue()];
+        const qc_jobs = await this.quality_Control();
+        const ixd_jobs = await this.index_all(qc_jobs[0]);
+        var samples_jobs: ICommand[] = []
 
-        // const qc_jobs = await this.quality_Control();
-        // const ixd_jobs = await this.index_all(qc_jobs[0]);
-        // var samples_jobs: ICommand[] = []
+        /// mapear e quantificar
+        const holder1 = new CMD_Holder(this.project)
+        const holder2 = new CMD_Holder(this.project)
+        var lock: ICommand = ixd_jobs[0];
+        for (let index = 0; index < this.project.samples.length; index++) {
+            const sample = this.project.samples[index];
+            const cmdsmp = await this.process_Sample(sample, lock);
+            lock = this.project.fast ? ixd_jobs[0] : cmdsmp[0];
+            if (sample.group == this.project.control)
+                holder1.add(cmdsmp[0]);
+            else
+                holder2.add(cmdsmp[0]);
+            samples_jobs.push(...cmdsmp);
+        }
 
-        // /// mapear e quantificar
-        // const holder1 = new CMD_Holder(this.project)
-        // const holder2 = new CMD_Holder(this.project)
-        // var lock: ICommand = ixd_jobs[0];
-        // for (let index = 0; index < this.project.samples.length; index++) {
-        //     const sample = this.project.samples[index];
-        //     const cmdsmp = await this.process_Sample(sample, lock);
-        //     lock = this.project.fast ? ixd_jobs[0] : cmdsmp[0];
-        //     if (sample.group == this.project.control)
-        //         holder1.add(cmdsmp[0]);
-        //     else
-        //         holder2.add(cmdsmp[0]);
-        //     samples_jobs.push(...cmdsmp);
-        // }
+        const holder3 = await new CMD_Holder(this.project)
+            .add(await holder1.step(4).enqueue())
+            .add(await holder2.step(4).enqueue())
+            .step(4).enqueue();
 
-        // const holder3 = await new CMD_Holder(this.project)
-        //     .add(await holder1.step(4).enqueue())
-        //     .add(await holder2.step(4).enqueue())
-        //     .step(4).enqueue();
+        /rmats, t3drnaaseq, multiqc, ete3, interproscan
 
-        ///rmats, t3drnaaseq, multiqc, ete3, interproscan
+        const rmats = await new CMD_Rmats(this.project)
+            .fill().args(this.args.rmats)
+            .wait(holder3).step(4).enqueue();
+        const t3drnaseq = await new CMD_T3drnaseq(this.project)
+            .fill().args(this.args.t3drna)
+            .wait(holder3).step(4).enqueue();
 
-        // const rmats = await new CMD_Rmats(this.project)
-        //     .fill().args(this.args.rmats)
-        //     .wait(holder3).step(4).enqueue();
-        // const t3drnaseq = await new CMD_T3drnaseq(this.project)
-        //     .fill().args(this.args.t3drna)
-        //     .wait(holder3).step(4).enqueue();
+        /// gerar output
 
-        // /// gerar output
-
-        // return qc_jobs.concat(ixd_jobs).concat(samples_jobs).concat([rmats, t3drnaseq])
+        return qc_jobs.concat(ixd_jobs).concat(samples_jobs).concat([rmats, t3drnaseq])
     }
 
 }
