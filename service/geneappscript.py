@@ -19,7 +19,7 @@ SCRIPTS='/app/scripts'
 INPUTS=PROJECTS+'/inputs'
 VOID=('', 204)
 ALLOW = ['http://ftp.ncbi.nlm.nih.gov/', 'https://ftp.ncbi.nlm.nih.gov/']
-BASIC_STR = re.compile(r"^[A-Za-z0-9@ ,:_.'-]{4,200}$")
+BASIC_STR = re.compile(r"^[A-Za-z0-9@ ,:_.-]{4,200}$")
 
 app = Flask(__name__)
 ##app.config["MAX_CONTENT_LENGTH"] = 100000000
@@ -220,15 +220,15 @@ def _clean(external, allow):
     try:
         external = external.replace('\\', '/').replace('..', '.')
         external = f"{external.strip()}"
-        assert re.fullmatch(BASIC_STR, external) 
         assert (not external.startswith('/')) and (not external.endswith('/'))
+        assert re.fullmatch(BASIC_STR, external) 
         assert allow(external)
     except:
         raise Exception(f"STR INV: {external} FN: {allow}")
     return external
 
 cln_str = lambda e: _clean(e, lambda _: True)
-cln_url = lambda e: _clean(e, lambda f: any([f.startswith(x) for x in ALLOW]))
+cln_url = lambda e: _clean(e, lambda f: any([f.startswith(x.replace("/", "@")) for x in ALLOW]))
 cln_input = lambda e: _clean(e, lambda f: f in os.listdir(INPUTS))
 
 @app.route("/show/<proj>/<int:id>/<file>", methods=['POST'])
@@ -250,7 +250,7 @@ def copiar(proj, id, fin, fout, lock): ## copiar do inputs geral para o inputs d
 def baixar(proj, id, out, sra, paired, lock): ## baixar no inputs do projeto
     assert id >= 0 and proj in projects
     request_data = request.get_json()
-    url = cln_url(request_data['url']) if sra == 1 else cln_url(request_data['url'])
+    url = cln_str(request_data['url']) if sra == 1 else cln_url(request_data['url'].replace("/", "@")).replace("@", "/")
     dst = cln_str(out)
     args = [f"{SCRIPTS}/baixar.sh", PROJECTS, proj, id, url, dst]
     if sra == 1:
@@ -382,7 +382,7 @@ def t3drnaseq(proj, id, ctrl, trt, lock: int): ## quantify in indexed genomic fi
     ctrl = cln_str(ctrl)
     trt = cln_str(trt)
     request_data = request.get_json()
-    param =  cln_str(request_data['param'])
+    param =  cln_str(request_data['param'].replace("=", ":").replace('"', "@"))
     args = [f"{SCRIPTS}/t3drnaseq.R", PROJECTS, proj, id, ctrl, trt, param]
 
     tmp = f"{PROJECTS}/{proj}/inputs/t3drnaseq_tmp"

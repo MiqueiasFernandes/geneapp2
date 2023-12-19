@@ -148,9 +148,9 @@ if ("t3drnaseq executado." %in% readLines(paste0(results, "/status.txt"))) {
         p=gsub(":.*", "", x)
         v=gsub(".*:", "", x)
         if (nchar(p) > 1 && nchar(v) > 0) {
-            is_str = grepl("'", v)
+            is_str = grepl("@", v)
             if (is_str) {
-                v <- gsub("'", "", v)
+                v <- gsub("@", "", v)
                 show(paste(" ====>  Assigin STR ", p, " <- ",  v))
             } else {
                 v <- as.double(v)

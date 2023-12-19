@@ -156,10 +156,22 @@ export const Project_ARABDOPSIS: IProject = Object.assign(Object.assign({}, Proj
 })
 
 export const Project_HUMAN: IProject = Object.assign(Object.assign({}, Project_FUNGI), {
-    name: "Project Human", organism: "Humano",
+    name: "Project Human", organism: "Humano", online: true, 
     genome: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_genomic.fna.gz',
     anotattion: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_genomic.gff.gz',
     proteome: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_protein.faa.gz',
     transcriptome: 'https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_rna.fna.gz',
-    samples: []
+    samples: [
+        { acession: "SRR13576558", name: "wild1", group: 'WILD' },
+        { acession: "SRR13576555", name: "wild2", group: 'WILD' },
+        { acession: "SRR13576553", name: "wild3", group: 'WILD' },
+        { acession: "SRR13576600", name: "treated1", group: 'TREATED' },
+        { acession: "SRR13576596", name: "treated2", group: 'TREATED' },
+        { acession: "SRR13576577", name: "treated3", group: 'TREATED' }
+    ]
 })
+
+
+
+
+
