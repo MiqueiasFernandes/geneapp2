@@ -389,7 +389,6 @@ def t3drnaseq(proj, id, ctrl, trt, lock: int): ## quantify in indexed genomic fi
     tmp = f"{PROJECTS}/{proj}/inputs/t3drnaseq_tmp"
     if not os.path.isdir(tmp):
         os.mkdir(tmp)
-        shutil.copyfile(f"{PROJECTS}/{proj}/results/transcript_gene_mapping.csv", f"{tmp}/transcript_gene_mapping.csv")
         expd = f"{PROJECTS}/{proj}/inputs/t3drnaseq_tmp/experimental_design.csv"
         with open(expd, "w") as fo:
             fo.write("RUN,SAMPLE,FACTOR,FOLDER\n")

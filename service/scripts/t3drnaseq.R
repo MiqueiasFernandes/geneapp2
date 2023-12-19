@@ -118,7 +118,7 @@ if ("t3drnaseq executado." %in% readLines(paste0(results, "/status.txt"))) {
 
     ################################################################################
     ## ----->> Meta table includes sample information, e.g. conditions, bio-reps, seq-reps, abundance paths, etc.
-    metatable <- read.csv(file.path(getwd(), "experimental_design.csv"))
+    metatable <- read.csv(file.path(results, "experimental_design.csv"))
     ## select the columns of experimental design
     factor_col <- c("FACTOR")
     brep_col <- "SAMPLE"

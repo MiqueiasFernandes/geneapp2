@@ -279,7 +279,7 @@ export class CMD_T3drnaseq extends CMD {
     fill() {
         this.arg1 = this.prj.control;
         this.arg2 = this.prj.treatment;
-        this.arg3 = "deltaPS_cut:0.05 DE_pipeline:'glmQL'"
+        this.arg3 = 'deltaPS_cut=0.05 DE_pipeline="glmQL"'
         //RUN,SAMPLE,FACTOR,FOLDER
         this.payload = this.prj.samples.map(s => `${s.acession},${s.name},${s.group}`).join("\n")
 

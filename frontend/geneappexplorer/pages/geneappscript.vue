@@ -33,7 +33,7 @@ const args = ref({
     hisat2: "--no-unal",
     salmon: "--libType IU",
     rmats: "-t single",
-    t3drna: 'deltaPS_cut=0.05 DE_pipeline:"glmQL"'
+    t3drna: 'deltaPS_cut=0.05 DE_pipeline="glmQL"'
 })
 
 
