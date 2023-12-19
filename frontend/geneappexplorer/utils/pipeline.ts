@@ -1,5 +1,5 @@
 import type { ICommand, IProject, ISample } from "#imports";
-import { CMD_Mapping, CMD_QCSample, CMD_Quantify, CMD_Rmats, CMD_T3drnaseq } from "~/composables";
+import { CMD_ASResults, CMD_Group, CMD_Mapping, CMD_QCSample, CMD_Quantify, CMD_Rmats, CMD_T3drnaseq } from "~/composables";
 
 export default class Pipeline {
 
@@ -121,7 +121,6 @@ export default class Pipeline {
             .add(await holder2.step(4).enqueue())
             .step(4).enqueue();
 
-        //rmats, t3drnaaseq, multiqc, ete3, interproscan
 
         const rmats = await new CMD_Rmats(this.project)
             .fill().args(this.args.rmats)
@@ -129,10 +128,21 @@ export default class Pipeline {
         const t3drnaseq = await new CMD_T3drnaseq(this.project)
             .fill().args(this.args.t3drna)
             .wait(holder3).step(4).enqueue();
+        const multiqc = await new CMD_Multiqc(this.project)
+            .wait(holder3).step(4).enqueue();
 
-        /// gerar output
+        const holder4 = await new CMD_Holder(this.project)
+        .add(rmats)
+        .add(t3drnaseq)
+        .step(4).enqueue();
 
-        return qc_jobs.concat(ixd_jobs).concat(samples_jobs).concat([rmats, t3drnaseq])
+        const asresults = await new CMD_ASResults(this.project).wait(holder4).step(4).enqueue();
+        const ete3 = await new CMD_Group(this.project).wait(asresults).step(4).enqueue();
+        const interpro = await new CMD_Interpro(this.project).wait(asresults).step(4).enqueue();
+        
+        // gerar output
+
+        return qc_jobs.concat(ixd_jobs).concat(samples_jobs).concat([rmats, t3drnaseq, multiqc, asresults, ete3, interpro])
     }
 
 }

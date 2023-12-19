@@ -365,7 +365,7 @@ def quantify(proj, id, sample, index, is_pe, lock: int): ## quantify in indexed 
 
 
 @app.route("/rmats/<proj>/<int:id>/<bam1>/<bam2>/<int:rlen>/<int:lock>", methods=['POST'])
-def rmats(proj, id, bam1, bam2, rlen, lock: int): ## quantify in indexed genomic files
+def rmats(proj, id, bam1, bam2, rlen, lock: int): ## run rmats
     assert id >= 0 and proj in projects and rlen > 10
     bam1 = ",".join(map(lambda e: f"{PROJECTS}/{proj}/results/bams/{e}", cln_str(bam1).split(',')))
     bam2 = ",".join(map(lambda e: f"{PROJECTS}/{proj}/results/bams/{e}", cln_str(bam2).split(',')))
@@ -378,7 +378,7 @@ def rmats(proj, id, bam1, bam2, rlen, lock: int): ## quantify in indexed genomic
 ## Rscript R $CTRL $CASE $TMP_DIR/to3d $TMP_DIR/qnt
 
 @app.route("/t3drnaseq/<proj>/<int:id>/<ctrl>/<trt>/<int:lock>", methods=['POST'])
-def t3drnaseq(proj, id, ctrl, trt, lock: int): ## quantify in indexed genomic files
+def t3drnaseq(proj, id, ctrl, trt, lock: int): ## run 3drnaseq
     assert id >= 0 and proj in projects
     ctrl = cln_str(ctrl)
     trt = cln_str(trt)
@@ -397,6 +397,34 @@ def t3drnaseq(proj, id, ctrl, trt, lock: int): ## quantify in indexed genomic fi
                 fo.write(f"{run},{sample},{factor},quant_{sample}\n")
 
     return make_job(proj, id, args, lock if lock > 0 else None)
+
+
+@app.route("/multiqc/<proj>/<int:id>/<int:lock>")
+def multiqc(proj, id, lock: int): ## run multiqc
+    assert id >= 0 and proj in projects
+    args = [f"{SCRIPTS}/multiqc.sh", PROJECTS, proj, id]
+    return make_job(proj, id, args, lock if lock > 0 else None)
+
+
+@app.route("/asresults/<proj>/<int:id>/<int:lock>")
+def asresults(proj, id, lock: int): ## sumarize results
+    assert id >= 0 and proj in projects
+    args = [f"{SCRIPTS}/asresults.py", PROJECTS, proj, id]
+    return make_job(proj, id, args, lock if lock > 0 else None)
+
+@app.route("/group/<proj>/<int:id>/<int:lock>")
+def group(proj, id, lock: int): ## sumarize results
+    assert id >= 0 and proj in projects
+    args = [f"{SCRIPTS}/group.sh", PROJECTS, proj, id]
+    return make_job(proj, id, args, lock if lock > 0 else None)
+
+
+@app.route("/interpro/<proj>/<int:id>/<int:lock>")
+def interpro(proj, id, lock: int): ## sumarize results
+    assert id >= 0 and proj in projects
+    args = [f"{SCRIPTS}/interpro.sh", PROJECTS, proj, id]
+    return make_job(proj, id, args, lock if lock > 0 else None)
+
 
 
 server()

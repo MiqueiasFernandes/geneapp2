@@ -289,3 +289,31 @@ export class CMD_T3drnaseq extends CMD {
     args(args: string) { this.arg3 = args; return this }
 
 }
+
+export class CMD_Multiqc extends CMD {
+
+    op = 16;
+    info = 'run MultiQC';
+
+}
+
+export class CMD_ASResults extends CMD {
+
+    op = 17;
+    info = 'Summarize results';
+
+}
+
+export class CMD_Group extends CMD {
+
+    op = 18;
+    info = 'Run ETE3 for AS genes';
+
+}
+
+export class CMD_Interpro extends CMD {
+
+    op = 19;
+    info = 'Run Interporscan5 annotattion for AS genes';
+
+}
