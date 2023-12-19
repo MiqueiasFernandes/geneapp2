@@ -172,8 +172,8 @@ export const Project_HUMAN: IProject = Object.assign(Object.assign({}, Project_F
         { acession: "SRR24554714", name: "control2", group: 'CONTROL' },
         { acession: "SRR24554715", name: "control3", group: 'CONTROL' },
         { acession: "SRR24554704", name: "yfvirus1", group: 'YFVIRUS' },
-        { acession: "SRR24554704", name: "yfvirus2", group: 'YFVIRUS' },
-        { acession: "SRR24554704", name: "yfvirus3", group: 'YFVIRUS' }
+        { acession: "SRR24554705", name: "yfvirus2", group: 'YFVIRUS' },
+        { acession: "SRR24554706", name: "yfvirus3", group: 'YFVIRUS' }
     ]
 })
 

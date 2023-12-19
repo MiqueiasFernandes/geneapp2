@@ -427,4 +427,12 @@ def interpro(proj, id, lock: int): ## sumarize results
 
 
 
+@app.route("/deeptools/<proj>/<int:id>/<int:lock>")
+def deeptools(proj, id, lock: int): ## sumarize results
+    assert id >= 0 and proj in projects
+    args = [f"{SCRIPTS}/deeptools.sh", PROJECTS, proj, id]
+    return make_job(proj, id, args, lock if lock > 0 else None)
+
+
+
 server()

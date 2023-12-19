@@ -30,6 +30,7 @@ networkx==3.2.1
 numpy==1.26.2
 numpydoc==1.6.0
 packaging==23.2
+pandas==2.1.4
 Pillow==10.1.0
 plotly==5.18.0
 py2bit==0.3.0
@@ -39,6 +40,7 @@ Pygments==2.17.2
 pyparsing==3.1.1
 pysam==0.22.0
 python-dateutil==2.8.2
+pytz==2023.3.post1
 PyYAML==6.0.1
 requests==2.31.0
 rich==13.7.0
@@ -57,5 +59,6 @@ sphinxcontrib-serializinghtml==1.1.9
 tabulate==0.9.0
 tenacity==8.2.3
 typing_extensions==4.9.0
+tzdata==2023.3
 urllib3==2.1.0
 zipp==3.17.0

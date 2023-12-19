@@ -317,3 +317,10 @@ export class CMD_Interpro extends CMD {
     info = 'Run Interporscan5 annotattion for AS genes';
 
 }
+
+export class CMD_Deeptools extends CMD {
+
+    op = 20;
+    info = 'Run Deeptools for AS genes';
+
+}

@@ -1,5 +1,5 @@
 import type { ICommand, IProject, ISample } from "#imports";
-import { CMD_ASResults, CMD_Group, CMD_Mapping, CMD_QCSample, CMD_Quantify, CMD_Rmats, CMD_T3drnaseq } from "~/composables";
+import { CMD_ASResults, CMD_Deeptools, CMD_Group, CMD_Mapping, CMD_QCSample, CMD_Quantify, CMD_Rmats, CMD_T3drnaseq } from "~/composables";
 
 export default class Pipeline {
 
@@ -139,10 +139,12 @@ export default class Pipeline {
         const asresults = await new CMD_ASResults(this.project).wait(holder4).step(4).enqueue();
         const ete3 = await new CMD_Group(this.project).wait(asresults).step(4).enqueue();
         const interpro = await new CMD_Interpro(this.project).wait(asresults).step(4).enqueue();
+        const deeptools = await new CMD_Deeptools(this.project).wait(asresults).step(4).enqueue();
         
-        // gerar output
-
-        return qc_jobs.concat(ixd_jobs).concat(samples_jobs).concat([rmats, t3drnaseq, multiqc, asresults, ete3, interpro])
+        // gerar output explorer
+        
+        return qc_jobs.concat(ixd_jobs).concat(samples_jobs)
+        .concat([rmats, t3drnaseq, multiqc, asresults, ete3, interpro, deeptools])
     }
 
 }

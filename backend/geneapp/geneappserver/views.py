@@ -30,12 +30,13 @@ from .cmd_handler.CMD16Multiqc import CMD16Multiqc
 from .cmd_handler.CMD17ASresults import CMD17ASResults
 from .cmd_handler.CMD18ETE3 import CMD18ETE3
 from .cmd_handler.CMD19Interpro import CMD19Interpro
+from .cmd_handler.CMD20Deeptools import CMD20Deeptools
 
 
 handlers = [CMD01Show(), CMD02Copy(), CMD03Download(), CMD04Unzip(), 
             CMD05Qinput(), CMD06Splitx(), CMD07Joinx(), CMD08Holder(), CMD09Qinput2(),
             CMD10Index(), CMD11QCSample(), CMD12Mapping(), CMD13Quantify(), CMD14Rmats(), CMD15T3drnaseq(),
-            CMD16Multiqc(), CMD17ASResults(), CMD18ETE3(), CMD19Interpro()]
+            CMD16Multiqc(), CMD17ASResults(), CMD18ETE3(), CMD19Interpro(), CMD20Deeptools()]
 
 class CRUD:
     def __init__(self, klass, serializer) -> None:
