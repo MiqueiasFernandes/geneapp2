@@ -89,6 +89,7 @@ def criar_projeto():
     os.makedirs(f"{PROJECTS}/{proj}/inputs")
     os.makedirs(f"{PROJECTS}/{proj}/jobs")
     os.makedirs(f"{PROJECTS}/{proj}/results")
+    open(f"{PROJECTS}/{proj}/results/status.txt", "w").write(f"NEW_PRJ {datetime.today()}\n")
     projects.append(proj)
     return make_job(proj, 0, ["echo", proj])
 

@@ -157,7 +157,7 @@ function remover() {
     }
 }
 
-async function acompanhar(jobs: any, logs: any, follow: any[], btn1: { value: any }, btn2: { value: any }, hab: () => void, timex = 1000) {
+async function acompanhar(jobs: any, logs: any, follow: any[], btn1: { value: any }, btn2: { value: any }, hab: () => void, timex = 30000) {
 
     if (follow.filter(x => x && x > 0).length < 1) {
         btn1.value = true;
@@ -215,7 +215,7 @@ async function acompanhar(jobs: any, logs: any, follow: any[], btn1: { value: an
 
                 } else if (limit == 3500) {
                     clearInterval(parar);
-                    acompanhar(jobs, logs, follow, btn1, btn2, hab, 10000)
+                    acompanhar(jobs, logs, follow, btn1, btn2, hab, 60000)
                 } else {
                     btn1.value = !(btn2.value = true);
                 }
