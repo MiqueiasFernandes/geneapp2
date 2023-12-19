@@ -24,13 +24,14 @@ results <- paste0(projects, "/", project, "/", "results")
 job <- args[[3]]
 ctrl <- args[[4]]
 trt <- args[[5]]
+xtra <- args[[6]]
 
 label1 <- ctrl
 label2 <- trt
 tmp_dir <- paste0(inputs, "/", "t3drnaseq_tmp")
 qnt_dir <- paste0(inputs)
 
-show(paste("ARGS: ", label1, label2, tmp_dir, qnt_dir, args))
+show(paste("ARGS: ", label1, label2, tmp_dir, qnt_dir, paste0("--<", xtra, ">--")))
 setwd(tmp_dir)
 
 
@@ -42,7 +43,7 @@ if ("t3drnaseq executado." %in% readLines(paste0(results, "/status.txt"))) {
     ################################################################################
     ## ----->> Set folders to read and save results
     data.folder <- file.path(getwd(), "data") # for .RData format results
-    result.folder <- file.path(getwd(), "result") # for 3D analysis results in csv files
+    result.folder <- file.path(results, "t3drnaseq") # for 3D analysis results in csv files
     figure.folder <- file.path(getwd(), "figure") # for figures
     report.folder <- file.path(getwd(), "report")
 
@@ -118,7 +119,7 @@ if ("t3drnaseq executado." %in% readLines(paste0(results, "/status.txt"))) {
 
     ################################################################################
     ## ----->> Meta table includes sample information, e.g. conditions, bio-reps, seq-reps, abundance paths, etc.
-    metatable <- read.csv(file.path(results, "experimental_design.csv"))
+    metatable <- read.csv(file.path(tmp_dir, "experimental_design.csv"))
     ## select the columns of experimental design
     factor_col <- c("FACTOR")
     brep_col <- "SAMPLE"
@@ -135,7 +136,7 @@ if ("t3drnaseq executado." %in% readLines(paste0(results, "/status.txt"))) {
     show(metatable)
 
     ## ----->> Transcript-gene association mapping
-    mapping <- read.csv(file.path(getwd(), "transcript_gene_mapping.csv"))
+    mapping <- read.csv(file.path(results, "transcript_gene_mapping.csv"))
     mapping <- data.frame(as.matrix(mapping), stringsAsFactors = F)
     rownames(mapping) <- mapping$TXNAME
     show(paste("Genes importados: ", length(unique(mapping$GENEID))))
@@ -143,7 +144,7 @@ if ("t3drnaseq executado." %in% readLines(paste0(results, "/status.txt"))) {
 
     show("==========> Read files      => OK")
 
-    z = strsplit(args[[6]], " ")[[1]]
+    z = strsplit(xtra, " ")[[1]]
     for (x in z) { 
         p=gsub(":.*", "", x)
         v=gsub(".*:", "", x)

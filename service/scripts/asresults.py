@@ -12,12 +12,6 @@ INPUTS=f"{PROJECTS}/{PROJ}/inputs/"
 RESULTS=f"{PROJECTS}/{PROJ}/results/"
 open(f"{PROJECTS}/{PROJ}/jobs/jobs.txt", "a").write("S " + ID + " "+ datetime.now(timezone.utc).replace(microsecond=0).astimezone().isoformat()+"\n")
 
-GN=sys.argv[4]
-GENOM=INPUTS+GN
-AN=sys.argv[5]
-ANOT=INPUTS+AN
-GOUT=INPUTS+sys.argv[6]
-AOUT=INPUTS+sys.argv[7]
 
 LOG=f"{PROJECTS}/{PROJ}/jobs/job.{ID}.out.txt"
 ERR=f"{PROJECTS}/{PROJ}/jobs/job.{ID}.err.txt"

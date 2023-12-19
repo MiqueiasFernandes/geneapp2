@@ -15,9 +15,9 @@ touch $ERR
 echo S $ID `date -Iseconds` >> "$PROJECTS/$PROJ/jobs/jobs.txt"
 
 source /geneapp_env/bin/activate
-mkdir $R/multiqc && cd $R/multiqc
-multiqc results/qc_* 1>>$LOG 2>>$ERR
+rm -rf $R/multiqc && mkdir $R/multiqc && cd $R/multiqc
+multiqc $R/qc_* 1>>$LOG 2>>$ERR
 
-echo "$L $(date +%d/%m\ %H:%M) sample mapped." >> $R/status.txt
+echo "$L $(date +%d/%m\ %H:%M) finished." >> $R/status.txt
 echo TERMINADO_COM_SUCESSO
 echo E $ID `date -Iseconds` >> "$PROJECTS/$PROJ/jobs/jobs.txt"
