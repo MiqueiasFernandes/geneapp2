@@ -121,7 +121,7 @@ export default class Pipeline {
             .add(await holder2.step(4).enqueue())
             .step(4).enqueue();
 
-        /rmats, t3drnaaseq, multiqc, ete3, interproscan
+        //rmats, t3drnaaseq, multiqc, ete3, interproscan
 
         const rmats = await new CMD_Rmats(this.project)
             .fill().args(this.args.rmats)
