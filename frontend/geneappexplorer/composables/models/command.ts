@@ -200,7 +200,8 @@ export class CMD_Index extends CMD {
 
 export class CMD_QCSample extends CMD {
 
-    op = 11;
+    public static op = 11;
+  
     info = 'Quality control for ? fastqc files';
     arg3 = "0";
 
@@ -213,11 +214,12 @@ export class CMD_QCSample extends CMD {
     sample(file: string) { this.arg1 = file; this.info = this.info.replace("?", file); return this }
     args(args: string) { this.arg2 = args; return this }
 
+
 }
 
 export class CMD_Mapping extends CMD {
 
-    op = 12;
+    public static op = 12;
     info = 'Mapping ? sample on @';
     arg4 = "0";
 
@@ -235,7 +237,7 @@ export class CMD_Mapping extends CMD {
 
 export class CMD_Quantify extends CMD {
 
-    op = 13;
+    public static op = 13;
     info = 'Quantify ? sample on @';
     arg4 = "0";
 
@@ -253,8 +255,7 @@ export class CMD_Quantify extends CMD {
 
 export class CMD_Rmats extends CMD {
 
-    //bam1, bam2, rlen, param = command.arg1, command.arg2, command.arg3, command.arg4
-    op = 14;
+    public static op = 14;
     info = 'run rMATS';
 
     fill() {
@@ -273,7 +274,7 @@ export class CMD_Rmats extends CMD {
 
 export class CMD_T3drnaseq extends CMD {
 
-    op = 15;
+    public static op = 15;
     info = 'run 3DRNASeq';
 
     fill() {

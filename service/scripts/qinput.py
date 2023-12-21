@@ -32,8 +32,6 @@ def err(msg):
     with open(ERR, 'a') as fo:
         fo.write(msg+'\n')
 
-seqs = [x for x in open(GENOM) if x.startswith('>')]
-log(f'#{len(seqs)} found in fasta {GENOM}')
 
 print(f"... QINPUT PY ...")
 
@@ -169,6 +167,8 @@ def makegff(fin, fout, seqs):
     return sortgff(dt, fout)
 
 def main():
+    seqs = [x for x in open(GENOM) if x.startswith('>')]
+    log(f'#{len(seqs)} found in fasta {GENOM}')
     valids, _ = clean_fasta(FILE_GENOME, GENOM_OUT, 
                     GEN_RGX, MIN_CHR, MAX_CHR, MAX_CHRS, RESULTS+"invalid_stats.txt")
 

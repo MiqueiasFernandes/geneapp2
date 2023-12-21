@@ -1,7 +1,7 @@
 
 <script setup lang="ts">
 import type { FormError, FormSubmitEvent } from '#ui/types'
-import { type ISample, CMD_Baixar, CMD_Unzip, CMD_Copiar, Project_ARABDOPSIS, Project_FUNGI, Project_HUMAN } from '~/composables';
+import { type ISample, CMD_Baixar, CMD_Unzip, CMD_Copiar, Project_ARABDOPSIS, Project_FUNGI, Project_HUMAN, type ICommand } from '~/composables';
 import LocalFile from '../utils/file';
 import Pipeline from '../utils/pipeline';
 const toast = useToast()
@@ -30,10 +30,10 @@ const logs4 = ref("")
 const show_logs4 = ref(false)
 const args = ref({
     trimommatic: "ILLUMINACLIP:TruSeq3-PE.fa:2:30:10:2:True LEADING:3 TRAILING:3 MINLEN:36",
-    hisat2: "--no-unal",
+    hisat2: "--no-unal -p 4",
     salmon: "--libType IU",
     rmats: "-t single",
-    t3drna: 'deltaPS_cut=0.05 DE_pipeline="glmQL"'
+    t3drna: 'deltaPS_cut=0.1 DE_pipeline="limma"'
 })
 
 
@@ -77,8 +77,15 @@ function set_prj() {
     sel.value = true;
 
     if (!items[3].disabled) {
-        acompanhar(jobs4, logs4,
-            project.commands.filter(c => c.meta === "step4").map(x => x.id), btn_baixar4, btn_baixar_l4, hab_exp);
+        
+        const jobs:ICommand[] = project.commands.filter(c => c.meta === "step4");
+        jobs.filter(j => j.op == CMD_QCSample.op).forEach(j => args.value.trimommatic = j.arg2 || "")
+        jobs.filter(j => j.op == CMD_Mapping.op).forEach(j => args.value.hisat2 = j.arg3 || "")
+        jobs.filter(j => j.op == CMD_Quantify.op).forEach(j => args.value.salmon = j.arg3 || "")
+        jobs.filter(j => j.op == CMD_Rmats.op).forEach(j => args.value.rmats = j.arg4 || "")
+        jobs.filter(j => j.op == CMD_T3drnaseq.op).forEach(j => args.value.t3drna = j.arg3 || "")
+
+        acompanhar(jobs4, logs4, jobs.map(x => x.id), btn_baixar4, btn_baixar_l4, hab_exp);
     }
 
     if (!items[2].disabled) {
